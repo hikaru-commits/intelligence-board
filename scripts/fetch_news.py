@@ -14,9 +14,10 @@ from trafilatura import extract as trafilatura_extract
 ROOT = Path(__file__).resolve().parents[1]
 CFG = json.loads((ROOT/"config/sources.json").read_text(encoding="utf-8"))
 OUT = ROOT/"data/news.json"
-UA = "SignalDeck/2.0.1-free (+GitHub Actions)"
+UA = "SignalDeck/2.0.2-free (+GitHub Actions)"
 session = requests.Session()
 session.headers.update({"User-Agent":UA,"Accept-Language":"ja,en;q=0.8"})
+DECODE_STATS={"ok":0,"fail":0}
 
 try:
     from googlenewsdecoder import new_decoderv1
@@ -28,10 +29,12 @@ def resolve_google_news_url(url:str) -> str:
         return url
     try:
         result = new_decoderv1(url, interval=0)
-        if isinstance(result, dict) and result.get("status") and result.get("decoded_url"):
+        if isinstance(result, dict) and (result.get("success") or result.get("status")) and result.get("decoded_url"):
+            DECODE_STATS["ok"]+=1
             return result["decoded_url"]
     except Exception as e:
         print("google decode failed", str(e)[:100])
+    DECODE_STATS["fail"]+=1
     return url
 
 GOOGLE_HOSTS=("news.google.com","google.com","www.google.com","gstatic.com","googleusercontent.com")
@@ -341,12 +344,12 @@ def main():
     payload={
         "updated_at":datetime.now(timezone.utc).isoformat(),
         "source_count":len(CFG.get("official_sources",[]))+sum(len(c["queries"]) for c in categories)*2+len(CFG.get("rsshub",{}).get("routes",[])),
-        "version":"2.0.1-free",
+        "version":"2.0.2-free",
         "content_extracted_count":sum(1 for x in items if x.get("content_text")),
         "semantic_clustered":True,
         "items":items
     }
     OUT.write_text(json.dumps(payload,ensure_ascii=False,indent=2),encoding="utf-8")
-    print("wrote",len(items),"items;",payload["content_extracted_count"],"with article text")
+    print("wrote",len(items),"items;",payload["content_extracted_count"],"with article text;",f"decoded={DECODE_STATS['ok']}, decode_fail={DECODE_STATS['fail']}")
 
 if __name__=="__main__":main()

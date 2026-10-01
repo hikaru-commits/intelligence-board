@@ -162,12 +162,16 @@ def main():
 
         # summary is first 1-2 strongest/earliest selected sentences, not title paraphrase
         summary_ja=" ".join(translated_points[:2]).strip()
+        title_key=re.sub(r"\W+","",(title_ja or "").lower())
+        summary_key=re.sub(r"\W+","",(summary_ja or "").lower())
+        if title_key and summary_key and (title_key in summary_key or summary_key in title_key):
+            summary_ja=""
         if len(summary_ja)>260:
             summary_ja=summary_ja[:257].rstrip()+"…"
 
         item["title_ja"]=title_ja
         item["summary_ja"]=summary_ja or translate(translator,item.get("summary",""),900)
-        item["key_points"]=[p[:180] for p in translated_points if p][:3]
+        item["key_points"]=[p[:180] for p in dedupe_points(translated_points)][:3]
         if not item["key_points"] and item.get("summary_ja"):
             item["key_points"]=[item["summary_ja"][:180]]
         item["why_it_matters"]=why_it_matters(item)
@@ -176,7 +180,7 @@ def main():
         item["enrichment_model"]="Argos+extractive-rules"
         enriched+=1
 
-    data["version"]="2.0.1-free"
+    data["version"]="2.0.2-free"
     data["enriched_count"]=sum(1 for x in items if x.get("title_ja"))
     data["enrichment_mode"]="free-local"
     PATH.write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding="utf-8")

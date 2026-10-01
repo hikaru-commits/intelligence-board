@@ -21,3 +21,10 @@
 - Google News RSSのラップURLを `googlenewsdecoder 0.2.1` で元記事URLへ解決してからTrafilaturaへ渡す。
 - FastEmbed標準対応の multilingual MiniLM モデルへ変更。
 - KEY POINTSの重複を抑制。
+
+
+## v2.0.2 hotfix
+- googlenewsdecoder 0.2.1 の現行レスポンス `success` に対応。
+- decode成功/失敗件数をActionsログへ表示。
+- KEY POINTS重複除去を実際の生成処理へ適用。
+- タイトルと同一の「要約」は表示しない。
