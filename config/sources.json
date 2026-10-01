@@ -1,0 +1,64 @@
+{
+  "max_items": 120,
+  "days_back": 7,
+  "categories": [
+    {
+      "name": "海運・LNG",
+      "priority": 5,
+      "queries": [
+        "shipping LNG carrier maritime decarbonization",
+        "LNG shipping boil-off gas vessel",
+        "maritime alternative fuel ammonia methanol LNG"
+      ]
+    },
+    {
+      "name": "IMO・規制",
+      "priority": 5,
+      "queries": [
+        "IMO MEPC MARPOL SOLAS STCW shipping regulation",
+        "FuelEU Maritime EU ETS shipping regulation",
+        "SIRE 2.0 tanker inspection OCIMF"
+      ]
+    },
+    {
+      "name": "AI・DX",
+      "priority": 4,
+      "queries": [
+        "OpenAI Codex AI agent release",
+        "Microsoft Copilot Power Automate AI agent",
+        "AI coding agent developer tools"
+      ]
+    },
+    {
+      "name": "3D・CAD",
+      "priority": 4,
+      "queries": [
+        "Bambu Lab 3D printer release firmware",
+        "Autodesk Fusion 360 API MCP AI",
+        "Blender 3D AI modeling addon"
+      ]
+    },
+    {
+      "name": "宇宙",
+      "priority": 3,
+      "queries": [
+        "SpaceX Starship launch satellite technology",
+        "NASA space technology satellite"
+      ]
+    }
+  ],
+  "domain_boost": [
+    "imo.org",
+    "classnk.or.jp",
+    "dnv.com",
+    "lr.org",
+    "eagle.org",
+    "openai.com",
+    "microsoft.com",
+    "github.com",
+    "autodesk.com",
+    "bambulab.com",
+    "nasa.gov",
+    "spacex.com"
+  ]
+}

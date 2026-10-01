@@ -1,0 +1,30 @@
+{
+  "updated_at": "2026-10-01T00:00:00+00:00",
+  "source_count": 0,
+  "items": [
+    {
+      "id": "sample1",
+      "category": "IMO・規制",
+      "priority": 5,
+      "title": "初回GitHub Actions実行後、ここに最新ニュースが表示されます",
+      "summary": "このファイルは初期表示用サンプルです。GitHub Actionsが30分ごとにGoogle News RSS等から最新記事を取得し、公開用アーティファクト内のnews.jsonを更新します。",
+      "source": "SYSTEM",
+      "published_at": "2026-10-01T00:00:00+00:00",
+      "url": "https://www.imo.org/",
+      "image": null,
+      "score": 100
+    },
+    {
+      "id": "sample2",
+      "category": "AI・DX",
+      "priority": 4,
+      "title": "AI・DX、海運、3D、宇宙を自動巡回",
+      "summary": "カテゴリはconfig/sources.jsonで追加・削除できます。表示画面は10秒ごとに自動切替し、ニュースデータは5分ごとに再読込します。",
+      "source": "SYSTEM",
+      "published_at": "2026-10-01T00:00:00+00:00",
+      "url": "https://github.com/",
+      "image": null,
+      "score": 90
+    }
+  ]
+}

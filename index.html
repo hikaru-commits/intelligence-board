@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0b0f14" />
+  <title>INTELLIGENCE BOARD</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">PERSONAL LIVE FEED</div>
+        <h1>INTELLIGENCE BOARD</h1>
+      </div>
+      <div class="status">
+        <span id="liveDot" class="dot"></span>
+        <span>LIVE</span>
+        <span id="clock"></span>
+      </div>
+    </header>
+
+    <nav id="filters" class="filters" aria-label="カテゴリ"></nav>
+
+    <main class="layout">
+      <section class="hero panel">
+        <div class="hero-media">
+          <img id="heroImage" alt="" />
+          <div id="heroFallback" class="hero-fallback">NEWS</div>
+          <div class="image-shade"></div>
+          <div class="hero-badges">
+            <span id="heroCategory" class="badge"></span>
+            <span id="heroPriority" class="badge priority"></span>
+          </div>
+        </div>
+        <div class="hero-copy">
+          <div class="meta">
+            <span id="heroSource"></span>
+            <span>•</span>
+            <span id="heroAge"></span>
+          </div>
+          <h2 id="heroTitle"></h2>
+          <p id="heroSummary"></p>
+          <div class="hero-actions">
+            <button id="prevBtn" type="button">← 前</button>
+            <button id="pauseBtn" type="button">一時停止</button>
+            <button id="nextBtn" type="button">次 →</button>
+            <a id="openArticle" target="_blank" rel="noopener noreferrer">記事を開く ↗</a>
+          </div>
+        </div>
+      </section>
+
+      <aside class="side panel">
+        <div class="side-head">
+          <h3>UP NEXT</h3>
+          <span id="updatedAt"></span>
+        </div>
+        <div id="queue" class="queue"></div>
+      </aside>
+    </main>
+
+    <section class="market panel">
+      <div class="section-title">
+        <span>MARKET</span>
+        <small id="marketStatus">loading...</small>
+      </div>
+      <div id="ticker" class="ticker"></div>
+    </section>
+
+    <footer>
+      <span id="feedStatus">読み込み中...</span>
+      <span>自動切替 <strong id="switchSeconds">10</strong>秒 / データ再読込 5分</span>
+    </footer>
+  </div>
+  <script src="./app.js"></script>
+</body>
+</html>
