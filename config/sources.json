@@ -1,15 +1,16 @@
 {
-  "version": "1.2-free",
+  "version": "2.0-free",
   "published_data_url": "https://hikaru-commits.github.io/intelligence-board/data/news.json",
   "max_items": 120,
   "days_back": 7,
   "enrichment": {
     "mode": "free-local",
     "translation": "Argos Translate en->ja",
-    "summarization": "extractive-rule-based",
+    "summarization": "FastEmbed sentence ranking + extractive rules",
     "why_it_matters": "rule-based",
     "signal": "rule-based",
-    "max_items_per_run": 18
+    "max_items_per_run": 28,
+    "max_sentences_considered": 36
   },
   "profile": {
     "focus": [
@@ -209,17 +210,44 @@
   },
   "content_extraction": {
     "enabled": true,
-    "max_new_articles_per_run": 18,
-    "max_chars_per_article": 7000,
-    "min_extracted_chars": 280,
-    "timeout_seconds": 9
+    "max_new_articles_per_run": 24,
+    "max_chars_per_article": 9000,
+    "min_extracted_chars": 300,
+    "timeout_seconds": 10
   },
   "semantic_clustering": {
-    "mode": "free-char-ngram",
-    "similarity_threshold": 0.8
+    "mode": "fastembed",
+    "model": "intfloat/multilingual-e5-small",
+    "max_items": 90,
+    "similarity_threshold": 0.9,
+    "fallback_title_threshold": 0.84
   },
   "rsshub": {
     "enabled_when_base_url_present": true,
     "routes": []
+  },
+  "direct_feeds": [
+    {
+      "url": "https://openai.com/news/rss.xml",
+      "category": "AI・DX",
+      "source": "OpenAI",
+      "official": true
+    },
+    {
+      "url": "https://github.com/blog.atom",
+      "category": "AI・DX",
+      "source": "GitHub",
+      "official": true
+    }
+  ],
+  "social_discovery": {
+    "enabled": true,
+    "provider": "bing-rss-keyless",
+    "max_items": 12,
+    "queries": [
+      "site:x.com (\"Codex\" OR \"Claude Code\" OR \"Gemini\" OR \"MCP\")",
+      "site:x.com (\"AI agent\" OR \"coding agent\")",
+      "site:x.com/Sokichi_Hoshino/status (AI OR Codex OR Claude OR Gemini)"
+    ]
   }
 }
