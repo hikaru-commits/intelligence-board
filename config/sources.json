@@ -1,25 +1,45 @@
 {
+  "version": "1.2-free",
+  "published_data_url": "https://hikaru-commits.github.io/intelligence-board/data/news.json",
   "max_items": 120,
   "days_back": 7,
+  "enrichment": {
+    "mode": "free-local",
+    "translation": "Argos Translate en->ja",
+    "summarization": "extractive-rule-based",
+    "why_it_matters": "rule-based",
+    "signal": "rule-based",
+    "max_items_per_run": 18
+  },
+  "profile": {
+    "focus": [
+      "IMO SOLAS MARPOL STCW IGC Code SIRE 2.0 OCIMF FuelEU Maritime EU ETS",
+      "LNG carrier boil-off gas cargo handling alternative fuel ammonia methanol",
+      "OpenAI Codex Claude Gemini AI agent MCP computer use AI coding automation",
+      "Fusion 360 Blender Bambu Lab 3D printing CAD generative design",
+      "SpaceX Starship satellites space technology"
+    ],
+    "why_it_matters_style": "practical"
+  },
   "categories": [
-    {
-      "name": "海運・LNG",
-      "priority": 5,
-      "queries": [
-        "shipping LNG carrier maritime decarbonization",
-        "LNG shipping boil-off gas vessel",
-        "maritime alternative fuel ammonia methanol LNG",
-        "shipping energy efficiency wind propulsion carbon capture"
-      ]
-    },
     {
       "name": "IMO・規制",
       "priority": 5,
       "queries": [
-        "IMO MEPC MARPOL SOLAS STCW shipping regulation",
-        "FuelEU Maritime EU ETS shipping regulation",
-        "SIRE 2.0 tanker inspection OCIMF",
-        "IMO circular resolution guideline maritime"
+        "IMO MEPC MARPOL SOLAS STCW regulation shipping",
+        "IGC Code LNG carrier regulation safety",
+        "SIRE 2.0 OCIMF tanker inspection",
+        "FuelEU Maritime EU ETS shipping MRV"
+      ]
+    },
+    {
+      "name": "海運・LNG",
+      "priority": 5,
+      "queries": [
+        "LNG carrier shipping boil-off gas cargo",
+        "shipping LNG ammonia methanol alternative fuel",
+        "maritime decarbonization energy efficiency vessel",
+        "shipping newbuilding LNG carrier technology"
       ]
     },
     {
@@ -27,25 +47,25 @@
       "priority": 4,
       "queries": [
         "OpenAI GPT Codex model release AI agent",
-        "Anthropic Claude Claude Code model release",
-        "Google Gemini model AI agent release",
+        "Anthropic Claude Claude Code release",
+        "Google Gemini DeepMind model agent release",
         "Microsoft Copilot Power Automate AI agent",
         "GitHub Copilot coding agent MCP",
-        "Cursor Windsurf VS Code AI coding agent",
+        "Cursor Windsurf AI coding agent",
         "MCP model context protocol agent skills",
-        "AI browser agent computer use automation",
-        "AI image video generation model release",
-        "local LLM open model benchmark"
+        "computer use browser agent automation",
+        "AI image video model release benchmark",
+        "local LLM open model release benchmark"
       ]
     },
     {
       "name": "3D・CAD",
       "priority": 4,
       "queries": [
-        "Bambu Lab 3D printer release firmware",
-        "Autodesk Fusion 360 API MCP AI",
-        "Blender 3D AI modeling addon",
-        "3D printing slicer CAD generative design"
+        "Bambu Lab 3D printer firmware release",
+        "Autodesk Fusion API MCP AI manufacturing",
+        "Blender AI modeling addon release",
+        "3D printing CAD generative design slicer"
       ]
     },
     {
@@ -53,8 +73,8 @@
       "priority": 3,
       "queries": [
         "SpaceX Starship launch satellite technology",
-        "NASA space technology satellite",
-        "rocket satellite launch technology"
+        "NASA space technology satellite mission",
+        "rocket launch satellite technology"
       ]
     }
   ],
@@ -71,6 +91,13 @@
       "category": "IMO・規制",
       "queries": [
         "technical information regulation shipping"
+      ]
+    },
+    {
+      "domain": "ocimf.org",
+      "category": "IMO・規制",
+      "queries": [
+        "SIRE 2.0 tanker inspection"
       ]
     },
     {
@@ -95,17 +122,31 @@
       ]
     },
     {
-      "domain": "ocimf.org",
-      "category": "IMO・規制",
-      "queries": [
-        "SIRE 2.0 tanker inspection"
-      ]
-    },
-    {
       "domain": "openai.com",
       "category": "AI・DX",
       "queries": [
-        "Codex agents API model release"
+        "GPT Codex agents API model release"
+      ]
+    },
+    {
+      "domain": "anthropic.com",
+      "category": "AI・DX",
+      "queries": [
+        "Claude Claude Code model release"
+      ]
+    },
+    {
+      "domain": "deepmind.google",
+      "category": "AI・DX",
+      "queries": [
+        "Gemini model agent release"
+      ]
+    },
+    {
+      "domain": "blog.google",
+      "category": "AI・DX",
+      "queries": [
+        "Gemini AI model release"
       ]
     },
     {
@@ -113,6 +154,13 @@
       "category": "AI・DX",
       "queries": [
         "Copilot Power Automate agent AI release"
+      ]
+    },
+    {
+      "domain": "github.blog",
+      "category": "AI・DX",
+      "queries": [
+        "Copilot coding agent MCP release"
       ]
     },
     {
@@ -126,7 +174,7 @@
       "domain": "bambulab.com",
       "category": "3D・CAD",
       "queries": [
-        "firmware printer release"
+        "3D printer firmware release"
       ]
     },
     {
@@ -135,38 +183,43 @@
       "queries": [
         "space technology satellite mission"
       ]
-    },
-    {
-      "domain": "github.blog",
-      "category": "AI・DX",
-      "queries": [
-        "Copilot agent MCP release AI coding"
-      ]
     }
   ],
   "domain_boost": [
     "imo.org",
     "classnk.or.jp",
+    "ocimf.org",
     "dnv.com",
     "lr.org",
     "eagle.org",
-    "ocimf.org",
     "openai.com",
+    "anthropic.com",
+    "deepmind.google",
+    "blog.google",
     "microsoft.com",
+    "github.blog",
     "autodesk.com",
     "bambulab.com",
     "nasa.gov",
-    "spacex.com",
-    "github.blog"
+    "spacex.com"
   ],
   "x_watch": {
-    "enabled_when_secret_present": true,
-    "max_items": 16,
-    "queries": [
-      "(Codex OR \"Claude Code\" OR Gemini OR MCP OR \"AI agent\") lang:ja -is:retweet -is:reply",
-      "(OpenAI OR Anthropic OR Gemini OR \"AI coding\" OR MCP) lang:en -is:retweet -is:reply",
-      "from:Sokichi_Hoshino -is:retweet"
-    ],
-    "minimum_engagement_score": 8
+    "mode": "rsshub-or-search",
+    "note": "Paid X API is not required. Use RSSHub route if available/self-hosted; otherwise SignalDeck runs without X."
+  },
+  "content_extraction": {
+    "enabled": true,
+    "max_new_articles_per_run": 18,
+    "max_chars_per_article": 7000,
+    "min_extracted_chars": 280,
+    "timeout_seconds": 9
+  },
+  "semantic_clustering": {
+    "mode": "free-char-ngram",
+    "similarity_threshold": 0.8
+  },
+  "rsshub": {
+    "enabled_when_base_url_present": true,
+    "routes": []
   }
 }

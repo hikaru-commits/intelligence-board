@@ -1,30 +1,79 @@
 {
-  "updated_at": "2026-10-01T00:00:00+00:00",
-  "source_count": 0,
+  "updated_at": "2026-10-01T02:30:00+00:00",
+  "source_count": 50,
+  "version": "1.2-free",
+  "enriched_count": 3,
   "items": [
     {
-      "id": "sample1",
-      "category": "IMO・規制",
+      "id": "demo1",
+      "category": "AI・DX",
       "priority": 5,
-      "title": "初回GitHub Actions実行後、ここに最新ニュースが表示されます",
-      "summary": "このファイルは初期表示用サンプルです。GitHub Actionsが30分ごとにGoogle News RSS等から最新記事を取得し、公開用アーティファクト内のnews.jsonを更新します。",
-      "source": "SYSTEM",
-      "published_at": "2026-10-01T00:00:00+00:00",
-      "url": "https://www.imo.org/",
+      "title": "Introducing a new AI coding model",
+      "title_ja": "新しいAIコーディングモデルが公開",
+      "summary": "A new model was released for coding tasks.",
+      "summary_ja": "コーディング用途に最適化した新モデルが公開。開発エージェントや既存ワークフローへの影響が注目される。",
+      "key_points": [
+        "コーディング用途を主対象とする新モデル",
+        "開発エージェントとの組み合わせが焦点",
+        "詳細な適用範囲は元記事で確認"
+      ],
+      "why_it_matters": "AIコーディングやCodexを使う開発フローのモデル選択に直接関係する。",
+      "signal": "HIGH",
+      "source": "Demo Official",
+      "source_type": "official",
+      "official": true,
+      "published_at": "2026-10-01T02:00:00+00:00",
+      "url": "https://example.com/a",
       "image": null,
-      "score": 100
+      "score": 150
     },
     {
-      "id": "sample2",
-      "category": "AI・DX",
-      "priority": 4,
-      "title": "AI・DX、海運、3D、宇宙を自動巡回",
-      "summary": "カテゴリはconfig/sources.jsonで追加・削除できます。表示画面は10秒ごとに自動切替し、ニュースデータは5分ごとに再読込します。",
-      "source": "SYSTEM",
-      "published_at": "2026-10-01T00:00:00+00:00",
-      "url": "https://github.com/",
+      "id": "demo2",
+      "category": "IMO・規制",
+      "priority": 5,
+      "title": "Maritime regulation update",
+      "title_ja": "海事規制の最新改正情報",
+      "summary": "A maritime regulation update was published.",
+      "summary_ja": "国際海運に関係する規制更新が公表。適用対象・発効日・既存船への適用有無の確認が必要。",
+      "key_points": [
+        "適用対象の確認が必要",
+        "発効日の確認が必要",
+        "会社手順・船内運用への反映要否を確認"
+      ],
+      "why_it_matters": "船舶運航・検査・会社手順に直接影響する可能性があるため優先確認対象。",
+      "signal": "HIGH",
+      "source": "Demo Maritime",
+      "source_type": "official",
+      "official": true,
+      "published_at": "2026-10-01T01:00:00+00:00",
+      "url": "https://example.com/b",
       "image": null,
-      "score": 90
+      "score": 145
+    },
+    {
+      "id": "demo3",
+      "category": "3D・CAD",
+      "priority": 4,
+      "title": "Fusion manufacturing update",
+      "title_ja": "Fusionの製造・自動化機能が更新",
+      "summary": "Fusion received a manufacturing update.",
+      "summary_ja": "Fusionの製造・自動化関連機能が更新。設計から自動生成・API連携までの効率化に関係する内容。",
+      "key_points": [
+        "設計・製造ワークフローの更新",
+        "API・自動化との組み合わせに注目"
+      ],
+      "why_it_matters": "3Dプリント用部品の設計自動化やCodex連携の改善余地がある。",
+      "signal": "MEDIUM",
+      "source": "Demo CAD",
+      "source_type": "news",
+      "official": false,
+      "published_at": "2026-09-30T23:00:00+00:00",
+      "url": "https://example.com/c",
+      "image": null,
+      "score": 118
     }
-  ]
+  ],
+  "content_extracted_count": 0,
+  "semantic_clustered": false,
+  "enrichment_mode": "free-local"
 }
