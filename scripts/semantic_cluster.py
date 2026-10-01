@@ -29,7 +29,7 @@ def main():
     if not items or scfg.get("mode")!="fastembed": return
     try:
         from fastembed import TextEmbedding
-        model=TextEmbedding(model_name=scfg.get("model","intfloat/multilingual-e5-small"),
+        model=TextEmbedding(model_name=scfg.get("model","sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"),
                             cache_dir=str(ROOT/".cache/fastembed"),threads=2)
     except Exception as e:
         print("FastEmbed unavailable:",e)

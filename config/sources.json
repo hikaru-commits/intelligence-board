@@ -1,5 +1,5 @@
 {
-  "version": "2.0-free",
+  "version": "2.0.1-free",
   "published_data_url": "https://hikaru-commits.github.io/intelligence-board/data/news.json",
   "max_items": 120,
   "days_back": 7,
@@ -217,9 +217,9 @@
   },
   "semantic_clustering": {
     "mode": "fastembed",
-    "model": "intfloat/multilingual-e5-small",
+    "model": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
     "max_items": 90,
-    "similarity_threshold": 0.9,
+    "similarity_threshold": 0.86,
     "fallback_title_threshold": 0.84
   },
   "rsshub": {

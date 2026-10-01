@@ -15,3 +15,9 @@
 - RSSHub optional
 
 外部ニュースを商用再配信する場合は、各情報源の利用規約・著作権・再配信条件を別途確認してください。
+
+
+## v2.0.1 hotfix
+- Google News RSSのラップURLを `googlenewsdecoder 0.2.1` で元記事URLへ解決してからTrafilaturaへ渡す。
+- FastEmbed標準対応の multilingual MiniLM モデルへ変更。
+- KEY POINTSの重複を抑制。

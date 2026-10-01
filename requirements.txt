@@ -6,3 +6,4 @@ trafilatura==2.2.0
 argostranslate==1.11.0
 fastembed==0.8.1
 numpy>=2.0,<3
+googlenewsdecoder==0.2.1

@@ -14,14 +14,30 @@ from trafilatura import extract as trafilatura_extract
 ROOT = Path(__file__).resolve().parents[1]
 CFG = json.loads((ROOT/"config/sources.json").read_text(encoding="utf-8"))
 OUT = ROOT/"data/news.json"
-UA = "SignalDeck/2.0-free (+GitHub Actions)"
+UA = "SignalDeck/2.0.1-free (+GitHub Actions)"
 session = requests.Session()
 session.headers.update({"User-Agent":UA,"Accept-Language":"ja,en;q=0.8"})
+
+try:
+    from googlenewsdecoder import new_decoderv1
+except Exception:
+    new_decoderv1 = None
+
+def resolve_google_news_url(url:str) -> str:
+    if not url or not is_google_url(url) or new_decoderv1 is None:
+        return url
+    try:
+        result = new_decoderv1(url, interval=0)
+        if isinstance(result, dict) and result.get("status") and result.get("decoded_url"):
+            return result["decoded_url"]
+    except Exception as e:
+        print("google decode failed", str(e)[:100])
+    return url
 
 GOOGLE_HOSTS=("news.google.com","google.com","www.google.com","gstatic.com","googleusercontent.com")
 PERSIST_FIELDS=(
     "title_ja","summary_ja","key_points","why_it_matters","signal",
-    "enriched_at","enrichment_model","content_text","content_chars",
+    "enriched_at","free_enriched_at","enrichment_model","content_text","content_chars",
     "content_extraction","embedding"
 )
 
@@ -134,7 +150,7 @@ def add_entry(items,seen,e,cat,official=False,source_override=None):
     dt=published(e)
     if dt < datetime.now(timezone.utc)-timedelta(days=CFG.get("days_back",7)):return
     title=clean_html(e.get("title",""))
-    url=extract_source_url(e)
+    url=resolve_google_news_url(extract_source_url(e))
     if not title or not url:return
     key=hashlib.sha1(normalize_title(title).encode()).hexdigest()[:20]
     if key in seen:return
@@ -325,7 +341,7 @@ def main():
     payload={
         "updated_at":datetime.now(timezone.utc).isoformat(),
         "source_count":len(CFG.get("official_sources",[]))+sum(len(c["queries"]) for c in categories)*2+len(CFG.get("rsshub",{}).get("routes",[])),
-        "version":"2.0-free",
+        "version":"2.0.1-free",
         "content_extracted_count":sum(1 for x in items if x.get("content_text")),
         "semantic_clustered":True,
         "items":items

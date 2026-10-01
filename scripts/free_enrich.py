@@ -92,6 +92,19 @@ def translate(translator,text,max_chars=1200):
     except Exception:
         return text
 
+def dedupe_points(points):
+    out=[]
+    seen=set()
+    for p in points:
+        p=(p or "").strip()
+        if not p: continue
+        key=re.sub(r"\W+","",p.lower())
+        if not key or key in seen: continue
+        if any((key in old or old in key) and min(len(key),len(old))/max(len(key),len(old))>.80 for old in seen):
+            continue
+        seen.add(key); out.append(p)
+    return out
+
 def why_it_matters(item):
     cat=item.get("category","")
     title=(item.get("title_ja") or item.get("title") or "").lower()
@@ -155,15 +168,15 @@ def main():
         item["title_ja"]=title_ja
         item["summary_ja"]=summary_ja or translate(translator,item.get("summary",""),900)
         item["key_points"]=[p[:180] for p in translated_points if p][:3]
-        while len(item["key_points"])<2 and item.get("summary_ja"):
-            item["key_points"].append(item["summary_ja"][:180])
+        if not item["key_points"] and item.get("summary_ja"):
+            item["key_points"]=[item["summary_ja"][:180]]
         item["why_it_matters"]=why_it_matters(item)
         item["signal"]=rule_signal(item)
         item["free_enriched_at"]=datetime.now(timezone.utc).isoformat()
         item["enrichment_model"]="Argos+extractive-rules"
         enriched+=1
 
-    data["version"]="2.0-free"
+    data["version"]="2.0.1-free"
     data["enriched_count"]=sum(1 for x in items if x.get("title_ja"))
     data["enrichment_mode"]="free-local"
     PATH.write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding="utf-8")
