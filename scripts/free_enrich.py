@@ -7,7 +7,7 @@ from collections import Counter
 ROOT = Path(__file__).resolve().parents[1]
 CFG = json.loads((ROOT/"config/sources.json").read_text(encoding="utf-8"))
 PATH = ROOT/"data/news.json"
-ENRICH_VERSION="2.0.3"
+ENRICH_VERSION="2.1"
 
 STOP_EN = {
     "the","a","an","and","or","of","to","in","on","for","with","by","from","as","at","is","are","was","were",
@@ -182,7 +182,7 @@ def main():
         item["free_enrich_version"]=ENRICH_VERSION
         enriched+=1
 
-    data["version"]="2.0.3-free"
+    data["version"]="2.1-free"
     data["enriched_count"]=sum(1 for x in items if x.get("title_ja"))
     data["enrichment_mode"]="free-local"
     PATH.write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding="utf-8")

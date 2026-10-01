@@ -1,5 +1,5 @@
 {
-  "version": "2.0.3-free",
+  "version": "2.1-free",
   "published_data_url": "https://hikaru-commits.github.io/intelligence-board/data/news.json",
   "max_items": 120,
   "days_back": 7,
@@ -210,7 +210,7 @@
   },
   "content_extraction": {
     "enabled": true,
-    "max_new_articles_per_run": 24,
+    "max_new_articles_per_run": 30,
     "max_chars_per_article": 9000,
     "min_extracted_chars": 300,
     "timeout_seconds": 10

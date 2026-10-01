@@ -35,3 +35,16 @@
 - `news.google.com/rss/articles/...` を元記事URLへdecodeしてからTrafilaturaへ渡す。
 - 古い日本語化キャッシュを一度無効化し、全記事をv2.0.3ロジックで再生成。
 - KEY POINTS重複除去・タイトルコピー要約抑制を既存記事にも反映。
+
+
+## v2.1 — Resolver architecture
+Google News decoderだけに依存する方式を廃止。
+本文取得時に以下の無料fallbackを順番に使います。
+
+1. 既存の直接URL
+2. Google News URL decode
+3. Bing RSSで記事タイトル完全一致検索
+4. 候補URLをTrafilaturaで実際に本文抽出できるか検証
+
+記事本文が取れないURLは採用しません。
+Actionsログに attempted / resolved / extracted 件数を出します。

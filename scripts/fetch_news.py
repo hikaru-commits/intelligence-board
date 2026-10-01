@@ -14,7 +14,7 @@ from trafilatura import extract as trafilatura_extract
 ROOT = Path(__file__).resolve().parents[1]
 CFG = json.loads((ROOT/"config/sources.json").read_text(encoding="utf-8"))
 OUT = ROOT/"data/news.json"
-UA = "SignalDeck/2.0.3-free (+GitHub Actions)"
+UA = "SignalDeck/2.1-free (+GitHub Actions)"
 session = requests.Session()
 session.headers.update({"User-Agent":UA,"Accept-Language":"ja,en;q=0.8"})
 DECODE_STATS={"ok":0,"fail":0}
@@ -148,6 +148,87 @@ def extract_article_text(url):
         return text[:int(ecfg.get("max_chars_per_article",7000))]
     except Exception as e:
         print("extract failed",url,str(e)[:120]);return None
+
+
+def bing_rss(query):
+    try:
+        r=session.get(
+            "https://www.bing.com/search",
+            params={"q":query,"format":"rss","mkt":"en-US","setlang":"en-US"},
+            timeout=10,
+        )
+        if r.status_code>=400:
+            return None
+        return feedparser.parse(r.content)
+    except Exception:
+        return None
+
+def looks_like_article_url(url:str) -> bool:
+    if not url or is_google_url(url):
+        return False
+    try:
+        p=urlparse(url)
+        path=(p.path or "").strip("/")
+        # reject bare homepages / category roots
+        if not path or len(path)<8:
+            return False
+        return True
+    except Exception:
+        return False
+
+def search_article_candidates(title:str, source:str=""):
+    query=f'"{title}"'
+    if source:
+        query += f' "{source}"'
+    feed=bing_rss(query)
+    out=[]
+    if not feed:
+        return out
+    for e in feed.entries[:8]:
+        u=(e.get("link") or "").strip()
+        if not looks_like_article_url(u):
+            continue
+        t=clean_html(e.get("title",""))
+        sim=title_similarity(title,t)
+        if sim>=0.55:
+            out.append((sim,u))
+    out.sort(reverse=True)
+    return [u for _,u in out]
+
+def try_extract_url(url:str):
+    if not looks_like_article_url(url):
+        return None,None
+    text=extract_article_text(url)
+    if text:
+        return url,text
+    return None,None
+
+def resolve_and_extract(item):
+    """Free, robust resolver:
+    1) existing URL
+    2) decoded Google News URL
+    3) exact-title Bing RSS fallback
+    Returns (resolved_url, article_text).
+    """
+    candidates=[]
+    raw=(item.get("url") or "").strip()
+    if raw:
+        if is_google_url(raw):
+            dec=resolve_google_news_url(raw)
+            if dec and dec!=raw:
+                candidates.append(dec)
+        else:
+            candidates.append(raw)
+
+    for u in search_article_candidates(item.get("title",""), item.get("source","")):
+        if u not in candidates:
+            candidates.append(u)
+
+    for u in candidates[:8]:
+        ru,text=try_extract_url(u)
+        if text:
+            return ru,text
+    return raw,None
 
 def google_rss(query,lang="en-US",gl="US",ceid="US:en"):
     u=f"https://news.google.com/rss/search?q={quote(query)}&hl={lang}&gl={gl}&ceid={quote(ceid)}"
@@ -334,15 +415,21 @@ def main():
     ecfg=CFG.get("content_extraction",{})
     budget=int(ecfg.get("max_new_articles_per_run",18))
     extracted=0
+    resolve_stats={"attempted":0,"resolved":0,"extracted":0}
     for item in items:
         if extracted>=budget:break
         if item.get("source_type")=="x" or item.get("content_text"):continue
-        text=extract_article_text(item.get("url",""))
+        resolve_stats["attempted"]+=1
+        resolved_url,text=resolve_and_extract(item)
+        if resolved_url and resolved_url != item.get("url"):
+            item["url"]=resolved_url
+            resolve_stats["resolved"]+=1
         if text:
             item["content_text"]=text
             item["content_chars"]=len(text)
             item["content_extraction"]="trafilatura"
             extracted+=1
+            resolve_stats["extracted"]+=1
 
     for item in items[:28]:
         if not item.get("image") and item.get("source_type")!="x":
@@ -359,12 +446,12 @@ def main():
     payload={
         "updated_at":datetime.now(timezone.utc).isoformat(),
         "source_count":len(CFG.get("official_sources",[]))+sum(len(c["queries"]) for c in categories)*2+len(CFG.get("rsshub",{}).get("routes",[])),
-        "version":"2.0.3-free",
+        "version":"2.1-free",
         "content_extracted_count":sum(1 for x in items if x.get("content_text")),
         "semantic_clustered":True,
         "items":items
     }
     OUT.write_text(json.dumps(payload,ensure_ascii=False,indent=2),encoding="utf-8")
-    print("wrote",len(items),"items;",payload["content_extracted_count"],"with article text;",f"decoded={DECODE_STATS['ok']}, decode_fail={DECODE_STATS['fail']}")
+    print("wrote",len(items),"items;",payload["content_extracted_count"],"with article text;",f"decoded={DECODE_STATS['ok']}, decode_fail={DECODE_STATS['fail']}, resolve_attempted={resolve_stats['attempted']}, resolved={resolve_stats['resolved']}, extracted={resolve_stats['extracted']}")
 
 if __name__=="__main__":main()
