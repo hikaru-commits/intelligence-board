@@ -1,147 +1,59 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#071019">
-  <meta name="color-scheme" content="dark">
-  <title>SignalDeck — Personal Intelligence</title>
-  <link rel="stylesheet" href="./style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#071019">
+<title>SignalDeck</title>
+<link rel="stylesheet" href="./style.css">
 </head>
 <body>
-  <div class="shell">
-    <header class="topbar">
-      <div class="brand">
-        <div class="brand-kicker">PERSONAL INTELLIGENCE</div>
-        <div class="brand-row">
-          <h1>SignalDeck</h1>
-          <span id="versionBadge" class="micro-badge">v1.0</span>
-        </div>
+<div class="shell">
+<header class="topbar">
+  <div><div class="kicker">PERSONAL INTELLIGENCE</div><div class="brandline"><h1>SignalDeck</h1><span id="versionBadge" class="micro">v3</span></div></div>
+  <div class="actions"><span class="live"><i></i>LIVE <b id="clock">--:--:--</b></span><button id="focusModeBtn">Focus</button><button id="pauseBtn">Pause</button></div>
+</header>
+
+<div class="controls">
+  <nav id="filters" class="filters"></nav>
+  <div class="rightctl"><label class="search">⌕ <input id="searchInput" placeholder="見出し・要点を検索"></label><select id="sortSelect"><option value="smart">Smart</option><option value="newest">Newest</option><option value="priority">Priority</option></select></div>
+</div>
+
+<section id="alertStrip" class="alert" hidden><span>HIGH SIGNAL</span><strong id="alertText"></strong><button id="alertOpenBtn">開く ↗</button></section>
+
+<main class="grid">
+  <article id="primaryCard" class="panel primary">
+    <div class="progress"><div id="progressBar"></div></div>
+    <div class="meta-row">
+      <div class="badges"><span id="sourceTypeBadge"></span><span id="categoryBadge"></span><span id="signalBadge"></span><span id="contentBadge"></span><span id="coverageBadge" hidden></span></div>
+      <div class="source-meta"><span id="sourceName"></span><span>•</span><span id="publishedAge"></span></div>
+    </div>
+    <div class="story-layout">
+      <div class="copy">
+        <div id="originalTitle" class="original" hidden></div>
+        <h2 id="mainTitle">Loading…</h2>
+        <p id="brief" class="brief"></p>
+        <div id="headlineOnly" class="headline-only" hidden>本文未取得のため、見出し情報のみ表示しています。</div>
+        <section id="keyPointSection" class="block" hidden><label>KEY POINTS</label><ul id="keyPoints"></ul></section>
+        <section id="whySection" class="why" hidden><label>WHY IT MATTERS</label><div id="whyItMatters"></div></section>
+        <div id="relatedSources" class="related" hidden></div>
+        <div class="foot"><div class="nav"><button id="prevBtn">←</button><button id="nextBtn">→</button><span id="positionText"></span></div><a id="openArticle" target="_blank" rel="noopener noreferrer">記事を開く ↗</a></div>
       </div>
+      <figure id="thumbWrap" hidden><img id="mainImage" alt=""><figcaption id="thumbCaption"></figcaption></figure>
+    </div>
+  </article>
 
-      <div class="top-actions">
-        <div id="freshness" class="freshness">
-          <span class="live-dot"></span>
-          <span>LIVE</span>
-          <span id="clock">--:--:--</span>
-        </div>
-        <button id="focusModeBtn" class="ghost-btn" type="button" aria-label="フォーカスモード">Focus</button>
-        <button id="pauseBtn" class="ghost-btn" type="button" aria-label="自動切替を停止">Pause</button>
-      </div>
-    </header>
+  <aside class="panel rail"><div class="railhead"><div><b>NEXT SIGNALS</b><small id="feedMeta"></small></div><button id="refreshBtn">↻</button></div><div id="queue"></div></aside>
+</main>
 
-    <section class="control-row">
-      <nav id="filters" class="filters" aria-label="ニュースカテゴリ"></nav>
-      <div class="control-right">
-        <label class="searchbox">
-          <span>⌕</span>
-          <input id="searchInput" type="search" placeholder="見出し・要約を検索">
-        </label>
-        <select id="sortSelect" class="select">
-          <option value="smart">Smart</option>
-          <option value="newest">Newest</option>
-          <option value="priority">Priority</option>
-        </select>
-      </div>
-    </section>
+<section class="lower">
+  <div class="panel lowerpanel"><div class="sectionhead"><b>TOP STORIES</b><small>重要度 × 鮮度 × ソース品質</small></div><div id="topStories" class="topstories"></div></div>
+  <div id="socialPanel" class="panel lowerpanel"><div class="sectionhead"><b>SOCIAL PULSE</b><small id="socialStatus">無料公開Web</small></div><div id="socialPulse"></div></div>
+</section>
 
-    <section id="alertStrip" class="alert-strip" hidden>
-      <div class="alert-label">HIGH SIGNAL</div>
-      <div id="alertText" class="alert-text"></div>
-      <button id="alertOpenBtn" class="alert-open">開く ↗</button>
-    </section>
-
-    <main class="dashboard">
-      <section class="primary-card panel">
-        <div class="primary-topline">
-          <div class="badges">
-            <span id="sourceTypeBadge" class="badge"></span>
-            <span id="categoryBadge" class="badge subtle"></span>
-            <span id="signalBadge" class="badge signal"></span>
-          </div>
-          <div class="primary-meta">
-            <span id="sourceName"></span>
-            <span>•</span>
-            <span id="publishedAge"></span>
-          </div>
-        </div>
-
-        <div class="primary-layout">
-          <div class="primary-copy">
-            <div id="originalTitle" class="original-title"></div>
-            <h2 id="mainTitle">読み込み中...</h2>
-            <p id="brief" class="brief"></p>
-
-            <section id="keyPointSection" class="insight-block">
-              <div class="insight-label">KEY POINTS</div>
-              <ul id="keyPoints"></ul>
-            </section>
-
-            <section id="whySection" class="why-block">
-              <div class="why-label">WHY IT MATTERS</div>
-              <div id="whyItMatters"></div>
-            </section>
-
-            <div class="primary-footer">
-              <div class="nav-buttons">
-                <button id="prevBtn" class="small-btn" type="button">←</button>
-                <button id="nextBtn" class="small-btn" type="button">→</button>
-                <span id="positionText" class="position-text"></span>
-              </div>
-              <a id="openArticle" class="open-btn" target="_blank" rel="noopener noreferrer">記事を開く ↗</a>
-            </div>
-          </div>
-
-          <figure id="thumbWrap" class="thumb-wrap" hidden>
-            <img id="mainImage" alt="">
-            <figcaption id="thumbCaption"></figcaption>
-          </figure>
-        </div>
-      </section>
-
-      <aside class="rail panel">
-        <div class="rail-head">
-          <div>
-            <div class="rail-title">NEXT SIGNALS</div>
-            <div id="feedMeta" class="rail-sub"></div>
-          </div>
-          <button id="refreshBtn" class="icon-btn" title="再読み込み">↻</button>
-        </div>
-        <div id="queue" class="queue"></div>
-      </aside>
-    </main>
-
-    <section class="secondary-grid">
-      <div class="panel compact-panel">
-        <div class="section-head">
-          <span>TOP STORIES</span>
-          <small>重要度 × 鮮度 × ソース品質</small>
-        </div>
-        <div id="topStories" class="top-stories"></div>
-      </div>
-
-      <div class="panel compact-panel social-panel">
-        <div class="section-head">
-          <span>SOCIAL PULSE</span>
-          <small id="socialStatus">X未接続</small>
-        </div>
-        <div id="socialPulse" class="social-pulse"></div>
-      </div>
-    </section>
-
-    <section id="marketPanel" class="market-strip panel">
-      <div class="market-head">
-        <span>MARKET</span>
-        <small id="marketStatus">未設定</small>
-      </div>
-      <div id="ticker" class="ticker"></div>
-    </section>
-
-    <footer class="footer">
-      <span id="statusText">読み込み中...</span>
-      <span>Auto <strong id="switchSeconds">12</strong>s · Refresh 5m</span>
-    </footer>
-  </div>
-  <script src="./app.js"></script>
+<section id="marketPanel" class="panel market" hidden><b>MARKET</b><div id="ticker"></div><small id="marketStatus"></small></section>
+<footer><span id="statusText">Loading…</span><span>Auto <b id="switchSeconds">7</b>s · source refresh ~30m</span></footer>
+</div>
+<script src="./app.js"></script>
 </body>
 </html>

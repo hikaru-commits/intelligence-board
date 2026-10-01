@@ -1,65 +1,71 @@
 from __future__ import annotations
-import json
+import json,re
 from pathlib import Path
 import numpy as np
+from difflib import SequenceMatcher
 
 ROOT=Path(__file__).resolve().parents[1]
 CFG=json.loads((ROOT/"config/sources.json").read_text(encoding="utf-8"))
 PATH=ROOT/"data/news.json"
 
-def cosine(a,b):
+def norm(s):
+    return re.sub(r"[^0-9a-zぁ-んァ-ン一-龯]+","",(s or "").lower())
+
+def lexical(a,b):
+    return SequenceMatcher(None,norm(a),norm(b)).ratio()
+
+def versions(title):
+    # Prevent "Gemini 3.8" and "Gemini 4" style stories from being merged.
+    return set(re.findall(r"\b\d+(?:\.\d+){0,2}\b",title or ""))
+
+def compatible(a,b):
+    va,vb=versions(a.get("title","")),versions(b.get("title",""))
+    if va and vb and va.isdisjoint(vb):return False
+    return True
+
+def cos(a,b):
     return float(np.dot(a,b)/((np.linalg.norm(a)*np.linalg.norm(b))+1e-12))
 
-def merge(rep,item):
+def merge(rep,x):
     rep["cluster_count"]=rep.get("cluster_count",1)+1
-    if item.get("source") and item["source"] not in rep.setdefault("related_sources",[]):
-        rep["related_sources"].append(item["source"])
-    rep.setdefault("related_articles",[]).append({
-        "title":item.get("title"),"source":item.get("source"),"url":item.get("url"),
-        "published_at":item.get("published_at"),"source_type":item.get("source_type")
-    })
-    if not rep.get("image") and item.get("image"): rep["image"]=item["image"]
-    if len(item.get("summary",""))>len(rep.get("summary","")): rep["summary"]=item["summary"]
-    rep["score"]=max(rep.get("score",0),item.get("score",0))+min(8,rep["cluster_count"]-1)
+    if x.get("source") and x["source"] not in rep.setdefault("related_sources",[]):rep["related_sources"].append(x["source"])
+    rep.setdefault("related_articles",[]).append({"title":x.get("title"),"source":x.get("source"),"url":x.get("url"),"published_at":x.get("published_at")})
+    if not rep.get("image") and x.get("image"):rep["image"]=x["image"]
+    rep["score"]=max(rep.get("score",0),x.get("score",0))+min(8,rep["cluster_count"]-1)
 
 def main():
     data=json.loads(PATH.read_text(encoding="utf-8"))
     items=data.get("items",[])
-    scfg=CFG.get("semantic_clustering",{})
-    if not items or scfg.get("mode")!="fastembed": return
+    if not items:return
+    cfg=CFG["semantic_clustering"]
     try:
         from fastembed import TextEmbedding
-        model=TextEmbedding(model_name=scfg.get("model","sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"),
-                            cache_dir=str(ROOT/".cache/fastembed"),threads=2)
-    except Exception as e:
-        print("FastEmbed unavailable:",e)
-        data["semantic_clustered"]=False
-        PATH.write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding="utf-8"); return
-    max_items=int(scfg.get("max_items",90))
-    subset=items[:max_items]
-    texts=["passage: "+((x.get("title") or "")+"\n"+(x.get("content_text") or x.get("summary") or "")[:1800]) for x in subset]
-    try:
+        model=TextEmbedding(model_name=cfg["model"],cache_dir=str(ROOT/".cache/fastembed"),threads=2)
+        subset=items[:int(cfg["max_items"])]
+        texts=["passage: "+((x.get("title") or "")+"\n"+(x.get("content_text") or x.get("summary") or "")[:1600]) for x in subset]
         vecs=[np.asarray(v,dtype=np.float32) for v in model.embed(texts,batch_size=16)]
     except Exception as e:
-        print("embedding failed:",e)
-        data["semantic_clustered"]=False
-        PATH.write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding="utf-8"); return
-    threshold=float(scfg.get("similarity_threshold",0.90))
+        print("FastEmbed fallback:",e)
+        subset=items;vecs=[None]*len(items)
+
     kept=[];kvec=[]
-    for item,vec in zip(subset,vecs):
-        best_i=-1;best=0.0
+    for x,v in zip(subset,vecs):
+        hit=-1;best=0.0
         for i,(rep,rv) in enumerate(zip(kept,kvec)):
-            if item.get("category")!=rep.get("category"): continue
-            sim=cosine(vec,rv)
-            if sim>best: best,best_i=sim,i
-        if best_i>=0 and best>=threshold: merge(kept[best_i],item)
-        else: kept.append(item);kvec.append(vec)
-    kept.extend(items[max_items:])
+            if x.get("category")!=rep.get("category") or not compatible(x,rep):continue
+            sim=lexical(x.get("title",""),rep.get("title",""))
+            if v is not None and rv is not None:sim=max(sim,cos(v,rv))
+            if sim>best:best,hit=sim,i
+        threshold=float(cfg["similarity_threshold"])
+        if hit>=0 and best>=threshold:merge(kept[hit],x)
+        else:kept.append(x);kvec.append(v)
+
+    if len(items)>len(subset):kept.extend(items[len(subset):])
     kept.sort(key=lambda x:(x.get("score",0),x.get("published_at","")),reverse=True)
     data["items"]=kept
     data["semantic_clustered"]=True
-    data["semantic_model"]=scfg.get("model")
     data["semantic_merged_count"]=len(items)-len(kept)
     PATH.write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding="utf-8")
-    print("semantic clusters:",len(items),"->",len(kept))
-if __name__=="__main__": main()
+    print(f"clusters {len(items)} -> {len(kept)}")
+
+if __name__=="__main__":main()

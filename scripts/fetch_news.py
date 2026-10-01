@@ -1,5 +1,5 @@
 from __future__ import annotations
-import json, re, time, hashlib, os, math
+import json, re, hashlib, os, time
 from difflib import SequenceMatcher
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
@@ -11,447 +11,284 @@ from bs4 import BeautifulSoup
 from dateutil import parser as dtparser
 from trafilatura import extract as trafilatura_extract
 
-ROOT = Path(__file__).resolve().parents[1]
-CFG = json.loads((ROOT/"config/sources.json").read_text(encoding="utf-8"))
-OUT = ROOT/"data/news.json"
-UA = "SignalDeck/2.1-free (+GitHub Actions)"
-session = requests.Session()
-session.headers.update({"User-Agent":UA,"Accept-Language":"ja,en;q=0.8"})
-DECODE_STATS={"ok":0,"fail":0}
+ROOT=Path(__file__).resolve().parents[1]
+CFG=json.loads((ROOT/"config/sources.json").read_text(encoding="utf-8"))
+OUT=ROOT/"data/news.json"
+UA="SignalDeck/3.0-free"
+S=requests.Session()
+S.headers.update({"User-Agent":UA,"Accept-Language":"ja,en;q=0.8"})
+GOOGLE_HOSTS=("news.google.com","google.com","www.google.com","gstatic.com","googleusercontent.com")
+STATS={"google_decode_ok":0,"google_decode_fail":0,"resolve_attempted":0,"resolved":0,"extracted":0,"direct_feed":0}
 
 try:
     from googlenewsdecoder import new_decoderv1
 except Exception:
-    new_decoderv1 = None
+    new_decoderv1=None
 
-def resolve_google_news_url(url:str) -> str:
-    if not url or not is_google_url(url) or new_decoderv1 is None:
-        return url
-    try:
-        result = new_decoderv1(url, interval=0)
-        if isinstance(result, dict) and (result.get("success") or result.get("status")) and result.get("decoded_url"):
-            DECODE_STATS["ok"]+=1
-            return result["decoded_url"]
-    except Exception as e:
-        print("google decode failed", str(e)[:100])
-    DECODE_STATS["fail"]+=1
-    return url
-
-GOOGLE_HOSTS=("news.google.com","google.com","www.google.com","gstatic.com","googleusercontent.com")
-PERSIST_FIELDS=(
-    "title_ja","summary_ja","key_points","why_it_matters","signal",
-    "enriched_at","free_enriched_at","enrichment_model","content_text","content_chars",
-    "content_extraction","embedding"
-)
-
-def clean_html(s:str)->str:
+def clean(s):
     return re.sub(r"\s+"," ",BeautifulSoup(s or "","html.parser").get_text(" ",strip=True)).strip()
 
-def published(e):
+def domain(url):
+    try:return urlparse(url).netloc.lower().removeprefix("www.")
+    except Exception:return ""
+
+def is_google(url):
+    d=domain(url)
+    return any(d==h or d.endswith("."+h) for h in GOOGLE_HOSTS)
+
+def domain_matches(url, expected):
+    d=domain(url); e=(expected or "").lower().removeprefix("www.")
+    return bool(d and e and (d==e or d.endswith("."+e)))
+
+def dt_of(e):
     for k in ("published","updated","created"):
         if e.get(k):
             try:return dtparser.parse(e[k]).astimezone(timezone.utc)
             except Exception:pass
     return datetime.now(timezone.utc)
 
-def domain_of(url):
-    try:return urlparse(url).netloc.lower().replace("www.","")
-    except Exception:return ""
-
-def is_google_url(url):
-    d=domain_of(url)
-    return any(d==h or d.endswith("."+h) for h in GOOGLE_HOSTS)
-
-def normalize_title(title):
-    s=clean_html(title).lower()
-    s=re.sub(r"\s+[\-–—|:]\s+[^\-–—|:]{2,80}$","",s)
-    s=re.sub(r"[^0-9a-zぁ-んァ-ン一-龯]+","",s)
-    return s
+def norm_title(s):
+    s=clean(s).lower()
+    s=re.sub(r"\s+[-–—|]\s+[^-–—|]{2,90}$","",s)
+    return re.sub(r"[^0-9a-zぁ-んァ-ン一-龯]+","",s)
 
 def title_similarity(a,b):
-    na,nb=normalize_title(a),normalize_title(b)
-    if not na or not nb:return 0
-    if na in nb or nb in na:return min(len(na),len(nb))/max(len(na),len(nb))
-    return SequenceMatcher(None,na,nb).ratio()
+    a,b=norm_title(a),norm_title(b)
+    if not a or not b:return 0.0
+    return SequenceMatcher(None,a,b).ratio()
 
-def cosine(a,b):
-    if not a or not b or len(a)!=len(b):return 0.0
-    return sum(x*y for x,y in zip(a,b))
+def publisher_suffix(title, source):
+    t=(title or "").strip(); s=(source or "").strip()
+    if not s:return t
+    for sep in (" - "," | "," – "," — "):
+        if sep in t:
+            left,right=t.rsplit(sep,1)
+            if norm_title(right)==norm_title(s) or norm_title(s) in norm_title(right):
+                return left.strip()
+    return t
 
-def extract_source_url(e):
-    # Prefer the canonical RSS entry link. For Google News this is the
-    # encoded /rss/articles/... URL and must be decoded to the publisher article.
-    link=(e.get("link") or "").strip()
-    if link.startswith("http"):
-        if is_google_url(link):
-            decoded=resolve_google_news_url(link)
-            if decoded and not is_google_url(decoded):
-                return decoded
-        else:
-            return link
-
-    # Fallback only when the canonical link could not be resolved.
-    # Google News summary anchors are often publisher homepages, not the article.
-    raw=e.get("summary") or e.get("description") or ""
+def google_decode(url):
+    if not url or not is_google(url) or not new_decoderv1:return url
     try:
-        soup=BeautifulSoup(raw,"html.parser")
-        for a in soup.find_all("a",href=True):
-            href=a.get("href","").strip()
-            if href.startswith("http") and not is_google_url(href):
-                return href
+        r=new_decoderv1(url,interval=0)
+        if isinstance(r,dict) and (r.get("success") or r.get("status")) and r.get("decoded_url"):
+            STATS["google_decode_ok"]+=1
+            return r["decoded_url"]
     except Exception:
         pass
-    return link
+    STATS["google_decode_fail"]+=1
+    return url
+
+def rss_google(query,lang="en-US",gl="US",ceid="US:en"):
+    url=f"https://news.google.com/rss/search?q={quote(query)}&hl={lang}&gl={gl}&ceid={quote(ceid)}"
+    return feedparser.parse(url)
+
+def rss_bing(query):
+    try:
+        r=S.get("https://www.bing.com/search",params={"q":query,"format":"rss","mkt":"en-US"},timeout=10)
+        return feedparser.parse(r.content) if r.ok else None
+    except Exception:return None
+
+def entry_source(e):
+    src=e.get("source")
+    if isinstance(src,dict):
+        return clean(src.get("title","")), (src.get("href") or "")
+    return "", ""
 
 def entry_image(e):
-    for key in ("media_content","media_thumbnail"):
-        for v in e.get(key) or []:
+    for k in ("media_content","media_thumbnail"):
+        for v in e.get(k) or []:
             if isinstance(v,dict):
                 u=(v.get("url") or "").strip()
-                if u.startswith("http") and not is_google_url(u):return u
+                if u.startswith("http") and not is_google(u):return u
     return None
 
-def summary_from_entry(e):
-    text=clean_html(e.get("summary") or e.get("description") or "")
-    text=re.sub(r"\s+[\-–—]\s+[^\-–—]{2,80}$","",text).strip()
-    return text[:447].rstrip()+"..." if len(text)>450 else text
-
 def og_image(url):
-    if not url or is_google_url(url):return None
+    if not url or is_google(url):return None
     try:
-        r=session.get(url,timeout=7,allow_redirects=True)
-        if r.status_code>=400 or "text/html" not in r.headers.get("content-type",""):return None
-        soup=BeautifulSoup(r.text[:1000000],"html.parser")
-        for sel in ('meta[property="og:image"]','meta[name="twitter:image"]','meta[property="twitter:image"]'):
+        r=S.get(url,timeout=7,allow_redirects=True)
+        if not r.ok or "text/html" not in r.headers.get("content-type",""):return None
+        soup=BeautifulSoup(r.text[:800000],"html.parser")
+        for sel in ('meta[property="og:image"]','meta[name="twitter:image"]'):
             n=soup.select_one(sel)
             if n and n.get("content"):
                 u=urljoin(r.url,n["content"].strip())
-                if u.startswith("http") and not is_google_url(u):return u
+                if u.startswith("http") and not is_google(u):return u
     except Exception:pass
     return None
 
-def extract_article_text(url):
-    ecfg=CFG.get("content_extraction",{})
-    if not ecfg.get("enabled",True) or not url or is_google_url(url):return None
+def extract_text(url):
+    if not url or is_google(url):return None
+    c=CFG["content_extraction"]
     try:
-        r=session.get(url,timeout=int(ecfg.get("timeout_seconds",9)),allow_redirects=True)
-        if r.status_code>=400 or "text/html" not in r.headers.get("content-type",""):return None
-        text=trafilatura_extract(
-            r.text,
-            url=r.url,
-            include_comments=False,
-            include_tables=False,
-            favor_precision=True
-        )
+        r=S.get(url,timeout=int(c["timeout_seconds"]),allow_redirects=True)
+        if not r.ok or "text/html" not in r.headers.get("content-type",""):return None
+        text=trafilatura_extract(r.text,url=r.url,include_comments=False,include_tables=False,include_links=False,favor_precision=True)
         text=re.sub(r"\s+"," ",text or "").strip()
-        if len(text)<int(ecfg.get("min_extracted_chars",280)):return None
-        return text[:int(ecfg.get("max_chars_per_article",7000))]
-    except Exception as e:
-        print("extract failed",url,str(e)[:120]);return None
+        if len(text)<int(c["min_extracted_chars"]):return None
+        return text[:int(c["max_chars_per_article"])]
+    except Exception:return None
 
-
-def bing_rss(query):
-    try:
-        r=session.get(
-            "https://www.bing.com/search",
-            params={"q":query,"format":"rss","mkt":"en-US","setlang":"en-US"},
-            timeout=10,
-        )
-        if r.status_code>=400:
-            return None
-        return feedparser.parse(r.content)
-    except Exception:
-        return None
-
-def looks_like_article_url(url:str) -> bool:
-    if not url or is_google_url(url):
-        return False
-    try:
-        p=urlparse(url)
-        path=(p.path or "").strip("/")
-        # reject bare homepages / category roots
-        if not path or len(path)<8:
-            return False
-        return True
-    except Exception:
-        return False
-
-def search_article_candidates(title:str, source:str=""):
-    query=f'"{title}"'
-    if source:
-        query += f' "{source}"'
-    feed=bing_rss(query)
-    out=[]
-    if not feed:
-        return out
+def safe_search_resolve(title, expected_domain):
+    """Resolve by title only when the candidate stays on the expected publisher domain."""
+    if not title or not expected_domain:return None
+    feed=rss_bing(f'site:{expected_domain} "{publisher_suffix(title, "")}"')
+    if not feed:return None
+    best=None
     for e in feed.entries[:8]:
         u=(e.get("link") or "").strip()
-        if not looks_like_article_url(u):
-            continue
-        t=clean_html(e.get("title",""))
-        sim=title_similarity(title,t)
-        if sim>=0.55:
-            out.append((sim,u))
-    out.sort(reverse=True)
-    return [u for _,u in out]
+        if not domain_matches(u,expected_domain):continue
+        sim=title_similarity(title,clean(e.get("title","")))
+        if sim>=0.68 and (best is None or sim>best[0]):best=(sim,u)
+    return best[1] if best else None
 
-def try_extract_url(url:str):
-    if not looks_like_article_url(url):
-        return None,None
-    text=extract_article_text(url)
-    if text:
-        return url,text
-    return None,None
-
-def resolve_and_extract(item):
-    """Free, robust resolver:
-    1) existing URL
-    2) decoded Google News URL
-    3) exact-title Bing RSS fallback
-    Returns (resolved_url, article_text).
-    """
+def resolve_url(raw_url,title,expected_domain):
+    STATS["resolve_attempted"]+=1
     candidates=[]
-    raw=(item.get("url") or "").strip()
-    if raw:
-        if is_google_url(raw):
-            dec=resolve_google_news_url(raw)
-            if dec and dec!=raw:
-                candidates.append(dec)
-        else:
-            candidates.append(raw)
+    if raw_url:
+        d=google_decode(raw_url) if is_google(raw_url) else raw_url
+        if d and not is_google(d):candidates.append(d)
+    searched=safe_search_resolve(title,expected_domain)
+    if searched and searched not in candidates:candidates.append(searched)
 
-    for u in search_article_candidates(item.get("title",""), item.get("source","")):
-        if u not in candidates:
-            candidates.append(u)
-
-    for u in candidates[:8]:
-        ru,text=try_extract_url(u)
+    for u in candidates:
+        # Official/source-constrained items must remain on the expected publisher.
+        if expected_domain and not domain_matches(u,expected_domain):continue
+        text=extract_text(u)
         if text:
-            return ru,text
-    return raw,None
+            STATS["resolved"]+=1; STATS["extracted"]+=1
+            return u,text
+    return raw_url,None
 
-def google_rss(query,lang="en-US",gl="US",ceid="US:en"):
-    u=f"https://news.google.com/rss/search?q={quote(query)}&hl={lang}&gl={gl}&ceid={quote(ceid)}"
-    return feedparser.parse(u)
-
-def score_item(item,priority,official=False):
+def score(item):
     age=max(0,(datetime.now(timezone.utc)-dtparser.parse(item["published_at"])).total_seconds()/3600)
-    freshness=max(0,40-age)
-    score=priority*20+freshness
-    if official:score+=35
-    elif any(domain_of(item["url"]).endswith(x) for x in CFG.get("domain_boost",[])):score+=20
-    hot=("regulation","amendment","adopted","enters into force","release","launch","guideline","circular","update",
-         "改正","発効","施行","採択","ガイドライン","通達","新モデル")
-    if any(k in item["title"].lower() for k in hot):score+=8
-    return round(score,2)
+    freshness=max(0,48-age)
+    q={"official":28,"news":10,"social":3}.get(item["source_type"],5)
+    return round(item["priority"]*20+freshness+q+min(10,(item.get("cluster_count",1)-1)*2),2)
 
-def add_entry(items,seen,e,cat,official=False,source_override=None):
-    dt=published(e)
-    if dt < datetime.now(timezone.utc)-timedelta(days=CFG.get("days_back",7)):return
-    title=clean_html(e.get("title",""))
-    url=extract_source_url(e)
-    if not title or not url:return
-    key=hashlib.sha1(normalize_title(title).encode()).hexdigest()[:20]
+def add(items,seen,e,cat,source_override="",expected_domain="",official_candidate=False,source_type="news"):
+    dt=dt_of(e)
+    if dt < datetime.now(timezone.utc)-timedelta(days=CFG["days_back"]):return
+    title=clean(e.get("title",""))
+    if not title:return
+    key=hashlib.sha1(norm_title(title).encode()).hexdigest()[:20]
     if key in seen:return
     seen.add(key)
-    source=source_override or ""
-    if not source and e.get("source") and isinstance(e.source,dict):source=e.source.get("title","")
-    if not source:source=domain_of(url) or "Feed"
+
+    src_title,src_href=entry_source(e)
+    source=source_override or src_title or domain(e.get("link","")) or "Feed"
+    expected=expected_domain or domain(src_href)
+    raw=(e.get("link") or "").strip()
+
+    # A site-restricted item is "official" only when the feed's source href or direct URL matches.
+    official=bool(official_candidate and (
+        domain_matches(src_href,expected_domain) or
+        (raw and not is_google(raw) and domain_matches(raw,expected_domain))
+    ))
+
+    summary=clean(e.get("summary") or e.get("description") or "")
     item={
-        "id":key,"category":cat["name"],"priority":cat.get("priority",3),
-        "title":title,"summary":summary_from_entry(e) or "記事を開いて詳細を確認してください。",
-        "source":source,"source_type":"official" if official else "news",
-        "published_at":dt.isoformat(),"url":url,"image":entry_image(e),
-        "official":bool(official),"cluster_count":1,"related_sources":[source] if source else []
+        "id":key,"category":cat["name"],"priority":cat["priority"],
+        "title":publisher_suffix(title,source),"summary":summary,
+        "source":source,"source_type":"official" if official else source_type,
+        "official":official,"expected_domain":expected,
+        "published_at":dt.isoformat(),"url":raw,"image":entry_image(e),
+        "cluster_count":1,"related_sources":[source],"related_articles":[]
     }
-    item["score"]=score_item(item,item["priority"],official)
+    item["score"]=score(item)
     items.append(item)
 
-def fetch_rsshub(items,seen):
-    base=os.getenv("RSSHUB_BASE_URL","").strip().rstrip("/")
-    routes=CFG.get("rsshub",{}).get("routes",[])
-    if not base or not routes:return
+def fetch_direct(items,seen):
     cats={c["name"]:c for c in CFG["categories"]}
-    for spec in routes:
-        route=spec.get("route","").strip()
-        cat=cats.get(spec.get("category"))
-        if not route or not cat:continue
-        try:
-            feed=feedparser.parse(base + "/" + route.lstrip("/"))
-            for e in feed.entries[:30]:
-                add_entry(items,seen,e,cat,bool(spec.get("official",False)),spec.get("source"))
-        except Exception as e:print("rsshub error",route,e)
+    for spec in CFG.get("direct_feeds",[]):
+        cat=cats.get(spec["category"])
+        if not cat:continue
+        feed=feedparser.parse(spec["url"])
+        for e in feed.entries[:30]:
+            add(items,seen,e,cat,spec["source"],spec["domain"],True,"news")
+            if items:
+                # direct feeds are trusted direct URLs
+                items[-1]["official"]=True
+                items[-1]["source_type"]="official"
+                items[-1]["expected_domain"]=spec["domain"]
+                STATS["direct_feed"]+=1
 
-def cluster_lexical(items):
-    ordered=sorted(items,key=lambda x:(x["score"],x["published_at"]),reverse=True)
-    out=[]
-    for item in ordered:
-        match=None
-        for rep in out:
-            if item["category"]!=rep["category"]:continue
-            if title_similarity(item["title"],rep["title"])>=0.84:
-                match=rep;break
-        if not match:
-            out.append(item);continue
-        merge_into(match,item)
-    return out
+def fetch_google(items,seen):
+    for spec in CFG.get("official_sources",[]):
+        cat=next(c for c in CFG["categories"] if c["name"]==spec["category"])
+        for q in spec["queries"]:
+            for f in (rss_google(f'site:{spec["domain"]} {q}'),rss_google(f'site:{spec["domain"]} {q}',"ja","JP","JP:ja")):
+                for e in f.entries[:12]:
+                    add(items,seen,e,cat,spec["source"],spec["domain"],True,"news")
+    for cat in CFG["categories"]:
+        for q in cat["queries"]:
+            for f in (rss_google(q),rss_google(q,"ja","JP","JP:ja")):
+                for e in f.entries[:18]:
+                    add(items,seen,e,cat)
 
-def merge_into(match,item):
-    match["cluster_count"]=match.get("cluster_count",1)+1
-    if item.get("source") and item["source"] not in match["related_sources"]:match["related_sources"].append(item["source"])
-    if not match.get("image") and item.get("image"):match["image"]=item["image"]
-    if is_google_url(match.get("url","")) and not is_google_url(item.get("url","")):
-        match["url"],match["source"]=item["url"],item["source"]
-    if len(item.get("summary",""))>len(match.get("summary","")):match["summary"]=item["summary"]
-    match["score"]=max(match["score"],item["score"])+min(6,match["cluster_count"]-1)
+def fetch_social(items,seen):
+    if not CFG.get("social_discovery",{}).get("enabled"):return
+    cat=next(c for c in CFG["categories"] if c["name"]=="AI・DX")
+    count=0
+    for q in CFG["social_discovery"]["queries"]:
+        f=rss_bing(q)
+        if not f:continue
+        for e in f.entries[:10]:
+            u=(e.get("link") or "")
+            if not re.search(r"https?://(www\.)?(x|twitter)\.com/.+/status/\d+",u):continue
+            add(items,seen,e,cat,domain(u),domain(u),False,"social")
+            count+=1
+            if count>=CFG["social_discovery"]["max_items"]:return
 
-def x_engagement_score(m):
-    raw=int(m.get("like_count",0) or 0)+2*int(m.get("retweet_count",0) or 0)+int(m.get("reply_count",0) or 0)+3*int(m.get("quote_count",0) or 0)
-    return int(round(math.log2(raw+1)*10)) if raw else 0
-
-def fetch_x_posts():
-    token=os.getenv("X_BEARER_TOKEN","").strip()
-    xcfg=CFG.get("x_watch",{})
-    if not token:return []
-    headers={"Authorization":f"Bearer {token}","User-Agent":UA}
-    items=[];seen=set()
-    for query in xcfg.get("queries",[]):
-        try:
-            r=requests.get("https://api.x.com/2/tweets/search/recent",headers=headers,params={
-                "query":query,"max_results":50,
-                "tweet.fields":"created_at,public_metrics,lang,author_id",
-                "expansions":"author_id","user.fields":"username,name,verified"
-            },timeout=12)
-            if r.status_code>=400:
-                print("X skipped",r.status_code);continue
-            p=r.json();users={u["id"]:u for u in p.get("includes",{}).get("users",[])}
-            for post in p.get("data",[]):
-                pid=post.get("id");txt=clean_html(post.get("text",""))
-                if not pid or not txt or pid in seen:continue
-                seen.add(pid)
-                metrics=post.get("public_metrics",{}) or {}
-                engagement=x_engagement_score(metrics)
-                if engagement<int(xcfg.get("minimum_engagement_score",0)):continue
-                user=users.get(post.get("author_id"),{});username=user.get("username","")
-                src=f"@{username}" if username else "X"
-                items.append({
-                    "id":f"x-{pid}","category":"AI・DX","priority":4,
-                    "title":txt[:220],"summary":f"Xで注目されている投稿。いいね {metrics.get('like_count',0)} / リポスト {metrics.get('retweet_count',0)} / 返信 {metrics.get('reply_count',0)}",
-                    "source":src,"source_type":"x","published_at":post.get("created_at") or datetime.now(timezone.utc).isoformat(),
-                    "url":f"https://x.com/{username}/status/{pid}" if username else f"https://x.com/i/web/status/{pid}",
-                    "image":None,"official":False,"cluster_count":1,"related_sources":[src],
-                    "engagement":metrics,"engagement_score":engagement,"score":95+engagement
-                })
-        except Exception as e:print("X error",e)
-    items.sort(key=lambda x:(x["engagement_score"],x["published_at"]),reverse=True)
-    return items[:int(xcfg.get("max_items",18))]
-
-def previous_data():
-    url=CFG.get("published_data_url")
-    if not url:return {}
+def previous():
     try:
-        r=session.get(url,timeout=8)
+        r=S.get(CFG["published_data_url"],timeout=8)
         if r.ok:
-            p=r.json()
-            return {x["id"]:x for x in p.get("items",[]) if x.get("id")}
+            return {x["id"]:x for x in r.json().get("items",[]) if x.get("id")}
     except Exception:pass
     return {}
 
-def char_ngrams(text,n=3):
-    s=re.sub(r"\s+"," ",(text or "").lower())
-    s=re.sub(r"[^\w一-龯ぁ-んァ-ン ]+","",s)
-    s=s.replace(" ","")
-    if len(s)<n:return set()
-    return {s[i:i+n] for i in range(len(s)-n+1)}
-
-def free_semantic_similarity(a,b):
-    ta=char_ngrams((a.get("title_ja") or a.get("title") or "")+" "+(a.get("summary_ja") or a.get("summary") or ""))
-    tb=char_ngrams((b.get("title_ja") or b.get("title") or "")+" "+(b.get("summary_ja") or b.get("summary") or ""))
-    if not ta or not tb:return 0.0
-    return len(ta & tb) / len(ta | tb)
-
-def semantic_merge(items):
-    scfg=CFG.get("semantic_clustering",{})
-    threshold=float(scfg.get("similarity_threshold",0.80))
-    out=[]
-    for item in sorted(items,key=lambda x:(x["score"],x["published_at"]),reverse=True):
-        match=None
-        for rep in out:
-            if item["category"]!=rep["category"]:continue
-            # combine lexical title and char-ngram semantic-ish similarity
-            sim=max(title_similarity(item["title"],rep["title"]), free_semantic_similarity(item,rep))
-            if sim>=threshold:
-                match=rep;break
-        if match:merge_into(match,item)
-        else:out.append(item)
-    return out
-
 def main():
-    categories=CFG["categories"];items=[];seen=set()
-    for src in CFG.get("official_sources",[]):
-        cat=next((c for c in categories if c["name"]==src["category"]),None)
-        if not cat:continue
-        for q in src.get("queries",[]):
-            query=f"site:{src['domain']} {q}"
-            for feed in (google_rss(query,"en-US","US","US:en"),google_rss(query,"ja","JP","JP:ja")):
-                for e in feed.entries[:12]:add_entry(items,seen,e,cat,True)
+    items=[];seen=set()
+    fetch_direct(items,seen)
+    fetch_google(items,seen)
+    fetch_social(items,seen)
 
-    for cat in categories:
-        for q in cat["queries"]:
-            for feed in (google_rss(q,"en-US","US","US:en"),google_rss(q,"ja","JP","JP:ja")):
-                for e in feed.entries[:20]:add_entry(items,seen,e,cat,False)
+    old=previous()
+    persist=("content_text","content_chars","content_extraction","title_ja","summary_ja","key_points","why_it_matters","signal","free_enriched_at","free_enrich_version")
+    for x in items:
+        o=old.get(x["id"],{})
+        # Reuse only content from a URL that still matches.
+        for k in persist:
+            if k in o:x[k]=o[k]
+        if o.get("url") and o.get("content_text") and (not x.get("expected_domain") or domain_matches(o["url"],x["expected_domain"])):
+            x["url"]=o["url"]
 
-    fetch_rsshub(items,seen)
-    items=cluster_lexical(items)
-    items.sort(key=lambda x:(x["score"],x["published_at"]),reverse=True)
-
-    prior=previous_data()
-    for item in items:
-        old=prior.get(item["id"],{})
-        for f in PERSIST_FIELDS:
-            if old.get(f) is not None:item[f]=old[f]
-
-    # Extract article bodies only for new/high-value articles; reuse cached extraction thereafter.
-    ecfg=CFG.get("content_extraction",{})
-    budget=int(ecfg.get("max_new_articles_per_run",18))
-    extracted=0
-    resolve_stats={"attempted":0,"resolved":0,"extracted":0}
-    for item in items:
-        if extracted>=budget:break
-        if item.get("source_type")=="x" or item.get("content_text"):continue
-        resolve_stats["attempted"]+=1
-        resolved_url,text=resolve_and_extract(item)
-        if resolved_url and resolved_url != item.get("url"):
-            item["url"]=resolved_url
-            resolve_stats["resolved"]+=1
+    budget=CFG["content_extraction"]["max_new_articles_per_run"]
+    done=0
+    for x in sorted(items,key=lambda z:z["score"],reverse=True):
+        if done>=budget:break
+        if x.get("content_text"):continue
+        # Only try full text when we know the publisher domain.
+        if not x.get("expected_domain"):continue
+        u,text=resolve_url(x.get("url",""),x["title"],x["expected_domain"])
         if text:
-            item["content_text"]=text
-            item["content_chars"]=len(text)
-            item["content_extraction"]="trafilatura"
-            extracted+=1
-            resolve_stats["extracted"]+=1
+            x["url"]=u;x["content_text"]=text;x["content_chars"]=len(text);x["content_extraction"]="trafilatura";done+=1
 
-    for item in items[:28]:
-        if not item.get("image") and item.get("source_type")!="x":
-            item["image"]=og_image(item.get("url",""))
-        time.sleep(.03)
+    for x in sorted(items,key=lambda z:z["score"],reverse=True)[:24]:
+        if not x.get("image") and x.get("url") and not is_google(x["url"]):
+            x["image"]=og_image(x["url"])
 
-    items=semantic_merge(items)
-    items.sort(key=lambda x:(x["score"],x["published_at"]),reverse=True)
-    items=items[:CFG.get("max_items",120)]
-
-    if not items and OUT.exists():
-        print("0 items; preserving existing data");return
-
+    items=sorted(items,key=lambda z:(z["score"],z["published_at"]),reverse=True)[:CFG["max_items"]]
     payload={
         "updated_at":datetime.now(timezone.utc).isoformat(),
-        "source_count":len(CFG.get("official_sources",[]))+sum(len(c["queries"]) for c in categories)*2+len(CFG.get("rsshub",{}).get("routes",[])),
-        "version":"2.1-free",
-        "content_extracted_count":sum(1 for x in items if x.get("content_text")),
-        "semantic_clustered":True,
+        "version":"3.0-free",
+        "source_count":len(CFG.get("direct_feeds",[]))+len(CFG.get("official_sources",[]))+sum(len(c["queries"]) for c in CFG["categories"]),
+        "content_extracted_count":sum(bool(x.get("content_text")) for x in items),
+        "resolver_stats":STATS,
         "items":items
     }
     OUT.write_text(json.dumps(payload,ensure_ascii=False,indent=2),encoding="utf-8")
-    print("wrote",len(items),"items;",payload["content_extracted_count"],"with article text;",f"decoded={DECODE_STATS['ok']}, decode_fail={DECODE_STATS['fail']}, resolve_attempted={resolve_stats['attempted']}, resolved={resolve_stats['resolved']}, extracted={resolve_stats['extracted']}")
+    print(json.dumps({"items":len(items),"full_text":payload["content_extracted_count"],**STATS},ensure_ascii=False))
 
 if __name__=="__main__":main()
