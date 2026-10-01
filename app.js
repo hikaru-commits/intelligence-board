@@ -27,12 +27,16 @@ function renderFilters(){
 }
 
 function setHeroImage(item){
-  const img = $("#heroImage"), fb = $("#heroFallback");
+  const img = $("#heroImage"), fb = $("#heroFallback"), hero = document.querySelector(".hero");
   if(item.image){
+    hero.classList.remove("no-image");
     img.src = item.image; img.hidden = false; fb.hidden = true;
-    img.onerror = () => { img.hidden = true; fb.hidden = false; };
+    img.onerror = () => {
+      img.hidden = true; fb.hidden = true; hero.classList.add("no-image");
+    };
   } else {
-    img.removeAttribute("src"); img.hidden = true; fb.hidden = false;
+    img.removeAttribute("src"); img.hidden = true; fb.hidden = true;
+    hero.classList.add("no-image");
   }
 }
 
@@ -47,7 +51,8 @@ function render(){
   setHeroImage(item);
   $("#heroCategory").textContent = item.category || "NEWS";
   $("#heroPriority").textContent = `重要度 ${"★".repeat(Math.max(1, Math.min(5, item.priority||3)))}`;
-  $("#heroSource").textContent = `${item.official ? "公式 · " : ""}${item.source || ""}${item.cluster_count > 1 ? ` · 関連${item.cluster_count}件` : ""}`;
+  const sourceLabel = item.source_type === "x" ? "X話題" : item.official ? "公式" : "報道";
+  $("#heroSource").textContent = `${sourceLabel} · ${item.source || ""}${item.cluster_count > 1 ? ` · 関連${item.cluster_count}件` : ""}`;
   $("#heroAge").textContent = ageLabel(item.published_at);
   $("#heroTitle").textContent = item.title || "";
   $("#heroSummary").textContent = item.summary || "";
@@ -60,7 +65,7 @@ function render(){
       ${q.image ? `<img class="qthumb" src="${esc(q.image)}" alt="">` : `<div class="qthumb qplaceholder">NEWS</div>`}
       <div><div class="qcat">${esc(q.category||"NEWS")}</div>
       <div class="qtitle">${esc(q.title)}</div>
-      <div class="qmeta">${q.official ? "公式 · " : ""}${esc(q.source||"")}${q.cluster_count>1 ? ` · 関連${q.cluster_count}件` : ""} · ${esc(ageLabel(q.published_at))}</div></div>
+      <div class="qmeta">${q.source_type==="x" ? "X話題 · " : q.official ? "公式 · " : "報道 · "}${esc(q.source||"")}${q.cluster_count>1 ? ` · 関連${q.cluster_count}件` : ""} · ${esc(ageLabel(q.published_at))}</div></div>
     </div>`).join("");
   $("#queue").querySelectorAll(".qitem").forEach(el => el.onclick = () => {
     state.index = (state.index + Number(el.dataset.offset)) % state.filtered.length; render(); resetTimer();

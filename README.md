@@ -1,4 +1,4 @@
-# Personal Intelligence Board v0.2
+# Personal Intelligence Board v0.3
 
 海運・IMO規制・AI/DX・3D/CAD・宇宙など、指定分野の最新ニュースを
 GitHub Actionsで30分ごとに取得し、GitHub Pagesで常時表示する個人向けダッシュボードです。
@@ -81,3 +81,26 @@ Name:
 - 取得0件時は正常な既存news.jsonを空データで上書きしない
 
 日本語LLM要約は有料APIを必須化しないため、まだ必須機能にはしていません。
+
+
+## v0.3 changes
+- メイン画像を24%程度まで縮小し、見出し・本文を主役に変更
+- 画像がない記事は画像領域そのものを非表示にし、見出しを全幅表示
+- AI監視対象を OpenAI / Claude / Gemini / Copilot / Cursor / Windsurf / MCP / Agent Skills / Computer Use / 生成AI / ローカルLLM まで拡張
+- `github.com` 全体を公式扱いする誤判定を廃止し、`github.blog` をGitHub公式として扱う
+- X API Recent Search対応を追加（`X_BEARER_TOKEN` が設定されている場合のみ）
+- XではAIキーワードの日本語・英語検索に加え `@Sokichi_Hoshino` を監視対象に追加
+- X投稿はいいね・リポスト・返信・引用を加味した話題度で上位を選定
+- 表示ラベルを「公式 / 報道 / X話題」に分離
+
+### X監視を有効化
+GitHub Repository:
+Settings → Secrets and variables → Actions → New repository secret
+
+Name:
+`X_BEARER_TOKEN`
+
+Value:
+X Developer Consoleで作成したAppのBearer Token
+
+Xトークンが未設定でもニュースサイト本体は正常動作します。

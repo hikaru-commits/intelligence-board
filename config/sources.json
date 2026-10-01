@@ -26,10 +26,16 @@
       "name": "AI・DX",
       "priority": 4,
       "queries": [
-        "OpenAI Codex AI agent release",
+        "OpenAI GPT Codex model release AI agent",
+        "Anthropic Claude Claude Code model release",
+        "Google Gemini model AI agent release",
         "Microsoft Copilot Power Automate AI agent",
-        "AI coding agent developer tools",
-        "GitHub Copilot agent MCP developer"
+        "GitHub Copilot coding agent MCP",
+        "Cursor Windsurf VS Code AI coding agent",
+        "MCP model context protocol agent skills",
+        "AI browser agent computer use automation",
+        "AI image video generation model release",
+        "local LLM open model benchmark"
       ]
     },
     {
@@ -110,13 +116,6 @@
       ]
     },
     {
-      "domain": "github.com",
-      "category": "AI・DX",
-      "queries": [
-        "Copilot agent MCP release"
-      ]
-    },
-    {
       "domain": "autodesk.com",
       "category": "3D・CAD",
       "queries": [
@@ -136,6 +135,13 @@
       "queries": [
         "space technology satellite mission"
       ]
+    },
+    {
+      "domain": "github.blog",
+      "category": "AI・DX",
+      "queries": [
+        "Copilot agent MCP release AI coding"
+      ]
     }
   ],
   "domain_boost": [
@@ -147,10 +153,20 @@
     "ocimf.org",
     "openai.com",
     "microsoft.com",
-    "github.com",
     "autodesk.com",
     "bambulab.com",
     "nasa.gov",
-    "spacex.com"
-  ]
+    "spacex.com",
+    "github.blog"
+  ],
+  "x_watch": {
+    "enabled_when_secret_present": true,
+    "max_items": 16,
+    "queries": [
+      "(Codex OR \"Claude Code\" OR Gemini OR MCP OR \"AI agent\") lang:ja -is:retweet -is:reply",
+      "(OpenAI OR Anthropic OR Gemini OR \"AI coding\" OR MCP) lang:en -is:retweet -is:reply",
+      "from:Sokichi_Hoshino -is:retweet"
+    ],
+    "minimum_engagement_score": 8
+  }
 }
