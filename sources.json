@@ -1,0 +1,156 @@
+{
+  "max_items": 120,
+  "days_back": 7,
+  "categories": [
+    {
+      "name": "海運・LNG",
+      "priority": 5,
+      "queries": [
+        "shipping LNG carrier maritime decarbonization",
+        "LNG shipping boil-off gas vessel",
+        "maritime alternative fuel ammonia methanol LNG",
+        "shipping energy efficiency wind propulsion carbon capture"
+      ]
+    },
+    {
+      "name": "IMO・規制",
+      "priority": 5,
+      "queries": [
+        "IMO MEPC MARPOL SOLAS STCW shipping regulation",
+        "FuelEU Maritime EU ETS shipping regulation",
+        "SIRE 2.0 tanker inspection OCIMF",
+        "IMO circular resolution guideline maritime"
+      ]
+    },
+    {
+      "name": "AI・DX",
+      "priority": 4,
+      "queries": [
+        "OpenAI Codex AI agent release",
+        "Microsoft Copilot Power Automate AI agent",
+        "AI coding agent developer tools",
+        "GitHub Copilot agent MCP developer"
+      ]
+    },
+    {
+      "name": "3D・CAD",
+      "priority": 4,
+      "queries": [
+        "Bambu Lab 3D printer release firmware",
+        "Autodesk Fusion 360 API MCP AI",
+        "Blender 3D AI modeling addon",
+        "3D printing slicer CAD generative design"
+      ]
+    },
+    {
+      "name": "宇宙",
+      "priority": 3,
+      "queries": [
+        "SpaceX Starship launch satellite technology",
+        "NASA space technology satellite",
+        "rocket satellite launch technology"
+      ]
+    }
+  ],
+  "official_sources": [
+    {
+      "domain": "imo.org",
+      "category": "IMO・規制",
+      "queries": [
+        "MEPC MARPOL SOLAS STCW circular resolution"
+      ]
+    },
+    {
+      "domain": "classnk.or.jp",
+      "category": "IMO・規制",
+      "queries": [
+        "technical information regulation shipping"
+      ]
+    },
+    {
+      "domain": "dnv.com",
+      "category": "海運・LNG",
+      "queries": [
+        "maritime LNG alternative fuel decarbonization"
+      ]
+    },
+    {
+      "domain": "lr.org",
+      "category": "海運・LNG",
+      "queries": [
+        "maritime LNG alternative fuel regulation"
+      ]
+    },
+    {
+      "domain": "eagle.org",
+      "category": "海運・LNG",
+      "queries": [
+        "marine LNG alternative fuel decarbonization"
+      ]
+    },
+    {
+      "domain": "ocimf.org",
+      "category": "IMO・規制",
+      "queries": [
+        "SIRE 2.0 tanker inspection"
+      ]
+    },
+    {
+      "domain": "openai.com",
+      "category": "AI・DX",
+      "queries": [
+        "Codex agents API model release"
+      ]
+    },
+    {
+      "domain": "microsoft.com",
+      "category": "AI・DX",
+      "queries": [
+        "Copilot Power Automate agent AI release"
+      ]
+    },
+    {
+      "domain": "github.com",
+      "category": "AI・DX",
+      "queries": [
+        "Copilot agent MCP release"
+      ]
+    },
+    {
+      "domain": "autodesk.com",
+      "category": "3D・CAD",
+      "queries": [
+        "Fusion API MCP AI manufacturing"
+      ]
+    },
+    {
+      "domain": "bambulab.com",
+      "category": "3D・CAD",
+      "queries": [
+        "firmware printer release"
+      ]
+    },
+    {
+      "domain": "nasa.gov",
+      "category": "宇宙",
+      "queries": [
+        "space technology satellite mission"
+      ]
+    }
+  ],
+  "domain_boost": [
+    "imo.org",
+    "classnk.or.jp",
+    "dnv.com",
+    "lr.org",
+    "eagle.org",
+    "ocimf.org",
+    "openai.com",
+    "microsoft.com",
+    "github.com",
+    "autodesk.com",
+    "bambulab.com",
+    "nasa.gov",
+    "spacex.com"
+  ]
+}

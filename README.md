@@ -1,4 +1,4 @@
-# Personal Intelligence Board v0.1
+# Personal Intelligence Board v0.2
 
 海運・IMO規制・AI/DX・3D/CAD・宇宙など、指定分野の最新ニュースを
 GitHub Actionsで30分ごとに取得し、GitHub Pagesで常時表示する個人向けダッシュボードです。
@@ -69,3 +69,15 @@ Name:
 5. 「必須 / 興味 / 一般」の表示レーン
 6. 保存・後で読む
 7. 新着重大ニュースの割り込み表示
+
+
+## v0.2 changes
+- IMO / ClassNK / DNV / LR / ABS / OCIMF / OpenAI / Microsoft / GitHub / Autodesk / Bambu Lab / NASA の公式ドメイン優先レーンを追加
+- 公式ソースはランキングを強く優遇
+- RSS本文に含まれる元記事URLを可能な範囲で抽出
+- Google Newsの汎用画像を除外し、元記事OGP画像を優先
+- 類似見出しをクラスタリングして重複表示を削減
+- 関連記事件数を画面表示
+- 取得0件時は正常な既存news.jsonを空データで上書きしない
+
+日本語LLM要約は有料APIを必須化しないため、まだ必須機能にはしていません。
