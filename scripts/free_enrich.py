@@ -7,7 +7,7 @@ import numpy as np
 ROOT=Path(__file__).resolve().parents[1]
 CFG=json.loads((ROOT/"config/sources.json").read_text(encoding="utf-8"))
 PATH=ROOT/"data/news.json"
-VERSION="3.0"
+VERSION="3.0.1"
 
 def sentences(text):
     parts=re.split(r'(?<=[。！？!?])\s*|(?<=[.!?])\s+(?=[A-Z0-9“"])',re.sub(r"\s+"," ",text or "").strip())
@@ -118,7 +118,7 @@ def main():
         x["enrichment_model"]="FastEmbed+Argos+rules"
         changed+=1
 
-    data["version"]="3.0-free"
+    data["version"]="3.0.1-free"
     data["enriched_count"]=sum(bool(x.get("title_ja")) for x in items)
     data["fulltext_enriched_count"]=sum(x.get("content_status")=="full" for x in items)
     PATH.write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding="utf-8")

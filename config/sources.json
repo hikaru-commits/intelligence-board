@@ -1,5 +1,5 @@
 {
-  "version": "3.0-free",
+  "version": "3.0.1-free",
   "published_data_url": "https://hikaru-commits.github.io/intelligence-board/data/news.json",
   "max_items": 120,
   "days_back": 5,

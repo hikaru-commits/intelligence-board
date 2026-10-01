@@ -14,7 +14,7 @@ from trafilatura import extract as trafilatura_extract
 ROOT=Path(__file__).resolve().parents[1]
 CFG=json.loads((ROOT/"config/sources.json").read_text(encoding="utf-8"))
 OUT=ROOT/"data/news.json"
-UA="SignalDeck/3.0-free"
+UA="SignalDeck/3.0.1-free"
 S=requests.Session()
 S.headers.update({"User-Agent":UA,"Accept-Language":"ja,en;q=0.8"})
 GOOGLE_HOSTS=("news.google.com","google.com","www.google.com","gstatic.com","googleusercontent.com")
@@ -255,14 +255,31 @@ def main():
     fetch_social(items,seen)
 
     old=previous()
-    persist=("content_text","content_chars","content_extraction","title_ja","summary_ja","key_points","why_it_matters","signal","free_enriched_at","free_enrich_version")
+    reusable_meta=("title_ja","summary_ja","key_points","why_it_matters","signal","free_enriched_at","free_enrich_version")
     for x in items:
         o=old.get(x["id"],{})
-        # Reuse only content from a URL that still matches.
-        for k in persist:
-            if k in o:x[k]=o[k]
-        if o.get("url") and o.get("content_text") and (not x.get("expected_domain") or domain_matches(o["url"],x["expected_domain"])):
-            x["url"]=o["url"]
+
+        # Reuse presentation/enrichment metadata, but NEVER blindly reuse old article bodies.
+        for k in reusable_meta:
+            if k in o:
+                x[k]=o[k]
+
+        old_url=(o.get("url") or "").strip()
+        safe_old_content=(
+            bool(o.get("content_text")) and
+            bool(old_url) and
+            not is_google(old_url) and
+            (not x.get("expected_domain") or domain_matches(old_url,x["expected_domain"]))
+        )
+        if safe_old_content:
+            x["url"]=old_url
+            x["content_text"]=o["content_text"]
+            x["content_chars"]=o.get("content_chars",len(o["content_text"]))
+            x["content_extraction"]=o.get("content_extraction","trafilatura")
+        else:
+            x.pop("content_text",None)
+            x.pop("content_chars",None)
+            x.pop("content_extraction",None)
 
     budget=CFG["content_extraction"]["max_new_articles_per_run"]
     done=0
@@ -282,7 +299,7 @@ def main():
     items=sorted(items,key=lambda z:(z["score"],z["published_at"]),reverse=True)[:CFG["max_items"]]
     payload={
         "updated_at":datetime.now(timezone.utc).isoformat(),
-        "version":"3.0-free",
+        "version":"3.0.1-free",
         "source_count":len(CFG.get("direct_feeds",[]))+len(CFG.get("official_sources",[]))+sum(len(c["queries"]) for c in CFG["categories"]),
         "content_extracted_count":sum(bool(x.get("content_text")) for x in items),
         "resolver_stats":STATS,
