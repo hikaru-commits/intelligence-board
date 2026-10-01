@@ -14,7 +14,7 @@ from trafilatura import extract as trafilatura_extract
 ROOT = Path(__file__).resolve().parents[1]
 CFG = json.loads((ROOT/"config/sources.json").read_text(encoding="utf-8"))
 OUT = ROOT/"data/news.json"
-UA = "SignalDeck/1.1 (+GitHub Actions)"
+UA = "SignalDeck/1.2.1-free (+GitHub Actions)"
 session = requests.Session()
 session.headers.update({"User-Agent":UA,"Accept-Language":"ja,en;q=0.8"})
 
@@ -326,7 +326,7 @@ def main():
     payload={
         "updated_at":datetime.now(timezone.utc).isoformat(),
         "source_count":len(CFG.get("official_sources",[]))+sum(len(c["queries"]) for c in categories)*2+len(CFG.get("rsshub",{}).get("routes",[])),
-        "version":"1.2-free",
+        "version":"1.2.1-free",
         "content_extracted_count":sum(1 for x in items if x.get("content_text")),
         "semantic_clustered":True,
         "items":items

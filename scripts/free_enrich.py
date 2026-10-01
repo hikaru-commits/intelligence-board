@@ -163,7 +163,7 @@ def main():
         item["enrichment_model"]="Argos+extractive-rules"
         enriched+=1
 
-    data["version"]="1.2-free"
+    data["version"]="1.2.1-free"
     data["enriched_count"]=sum(1 for x in items if x.get("title_ja"))
     data["enrichment_mode"]="free-local"
     PATH.write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding="utf-8")
