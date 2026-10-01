@@ -7,6 +7,7 @@ from collections import Counter
 ROOT = Path(__file__).resolve().parents[1]
 CFG = json.loads((ROOT/"config/sources.json").read_text(encoding="utf-8"))
 PATH = ROOT/"data/news.json"
+ENRICH_VERSION="2.0.3"
 
 STOP_EN = {
     "the","a","an","and","or","of","to","in","on","for","with","by","from","as","at","is","are","was","were",
@@ -148,8 +149,8 @@ def main():
     for item in items:
         if enriched>=limit:
             break
-        # Keep cached enrichment unless article changed/new.
-        if item.get("free_enriched_at") and item.get("title_ja") and item.get("summary_ja"):
+        # Reuse only enrichment produced by the current enrichment logic.
+        if item.get("free_enrich_version")==ENRICH_VERSION and item.get("title_ja") and item.get("summary_ja"):
             continue
 
         source_text=item.get("content_text") or item.get("summary") or ""
@@ -178,9 +179,10 @@ def main():
         item["signal"]=rule_signal(item)
         item["free_enriched_at"]=datetime.now(timezone.utc).isoformat()
         item["enrichment_model"]="Argos+extractive-rules"
+        item["free_enrich_version"]=ENRICH_VERSION
         enriched+=1
 
-    data["version"]="2.0.2-free"
+    data["version"]="2.0.3-free"
     data["enriched_count"]=sum(1 for x in items if x.get("title_ja"))
     data["enrichment_mode"]="free-local"
     PATH.write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding="utf-8")

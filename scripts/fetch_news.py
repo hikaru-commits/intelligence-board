@@ -14,7 +14,7 @@ from trafilatura import extract as trafilatura_extract
 ROOT = Path(__file__).resolve().parents[1]
 CFG = json.loads((ROOT/"config/sources.json").read_text(encoding="utf-8"))
 OUT = ROOT/"data/news.json"
-UA = "SignalDeck/2.0.2-free (+GitHub Actions)"
+UA = "SignalDeck/2.0.3-free (+GitHub Actions)"
 session = requests.Session()
 session.headers.update({"User-Agent":UA,"Accept-Language":"ja,en;q=0.8"})
 DECODE_STATS={"ok":0,"fail":0}
@@ -79,14 +79,29 @@ def cosine(a,b):
     return sum(x*y for x,y in zip(a,b))
 
 def extract_source_url(e):
+    # Prefer the canonical RSS entry link. For Google News this is the
+    # encoded /rss/articles/... URL and must be decoded to the publisher article.
+    link=(e.get("link") or "").strip()
+    if link.startswith("http"):
+        if is_google_url(link):
+            decoded=resolve_google_news_url(link)
+            if decoded and not is_google_url(decoded):
+                return decoded
+        else:
+            return link
+
+    # Fallback only when the canonical link could not be resolved.
+    # Google News summary anchors are often publisher homepages, not the article.
     raw=e.get("summary") or e.get("description") or ""
     try:
         soup=BeautifulSoup(raw,"html.parser")
         for a in soup.find_all("a",href=True):
             href=a.get("href","").strip()
-            if href.startswith("http") and not is_google_url(href):return href
-    except Exception:pass
-    return e.get("link","")
+            if href.startswith("http") and not is_google_url(href):
+                return href
+    except Exception:
+        pass
+    return link
 
 def entry_image(e):
     for key in ("media_content","media_thumbnail"):
@@ -153,7 +168,7 @@ def add_entry(items,seen,e,cat,official=False,source_override=None):
     dt=published(e)
     if dt < datetime.now(timezone.utc)-timedelta(days=CFG.get("days_back",7)):return
     title=clean_html(e.get("title",""))
-    url=resolve_google_news_url(extract_source_url(e))
+    url=extract_source_url(e)
     if not title or not url:return
     key=hashlib.sha1(normalize_title(title).encode()).hexdigest()[:20]
     if key in seen:return
@@ -344,7 +359,7 @@ def main():
     payload={
         "updated_at":datetime.now(timezone.utc).isoformat(),
         "source_count":len(CFG.get("official_sources",[]))+sum(len(c["queries"]) for c in categories)*2+len(CFG.get("rsshub",{}).get("routes",[])),
-        "version":"2.0.2-free",
+        "version":"2.0.3-free",
         "content_extracted_count":sum(1 for x in items if x.get("content_text")),
         "semantic_clustered":True,
         "items":items

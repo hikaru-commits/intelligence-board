@@ -28,3 +28,10 @@
 - decode成功/失敗件数をActionsログへ表示。
 - KEY POINTS重複除去を実際の生成処理へ適用。
 - タイトルと同一の「要約」は表示しない。
+
+
+## v2.0.3 hotfix
+- Google News RSSでは summary 内リンクより canonical entry.link を優先。
+- `news.google.com/rss/articles/...` を元記事URLへdecodeしてからTrafilaturaへ渡す。
+- 古い日本語化キャッシュを一度無効化し、全記事をv2.0.3ロジックで再生成。
+- KEY POINTS重複除去・タイトルコピー要約抑制を既存記事にも反映。
